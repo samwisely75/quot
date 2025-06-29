@@ -23,7 +23,7 @@ pub fn print_prompt_with_line_number(line_number: usize) -> Result<(), io::Error
 fn get_prompt_width(line_number: usize) -> usize {
     // Calculate width: line number + "> "
     // Use right-aligned format like print_prompt_with_line_number
-    format!("{:2}> ", line_number).len()
+    format!("{line_number:2}> ").len()
 }
 
 pub fn move_to_next_line() -> Result<(), io::Error> {
@@ -297,12 +297,10 @@ mod tests {
     #[test]
     fn test_cursor_movement_logic() {
         let line = String::from("hello");
-        let mut cursor_pos = 2;
+        let mut cursor_pos: usize = 2;
 
         // Test move cursor left
-        if cursor_pos > 0 {
-            cursor_pos -= 1;
-        }
+        cursor_pos = cursor_pos.saturating_sub(1);
         assert_eq!(cursor_pos, 1);
 
         // Test move cursor right
@@ -359,12 +357,12 @@ mod tests {
         match ctrl_c_event.code {
             KeyCode::Char(c) => {
                 if c == 'c' && ctrl_c_event.modifiers.contains(KeyModifiers::CONTROL) {
-                    assert!(true); // This is what should happen
+                    // This is what should happen - test passes
                 } else {
-                    assert!(false, "Should have detected Ctrl+C");
+                    panic!("Should have detected Ctrl+C");
                 }
             }
-            _ => assert!(false, "Should have been a char event"),
+            _ => panic!("Should have been a char event"),
         }
     }
 

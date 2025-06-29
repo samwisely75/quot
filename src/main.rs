@@ -117,7 +117,7 @@ fn print_result(input_string: String, quote_style: QuoteStyle) {
                 .replace('\n', "\\n")
                 .replace('\r', "\\r")
                 .replace('\t', "\\t");
-            format!("\"{}\"", escaped)
+            format!("\"{escaped}\"")
         }
         QuoteStyle::Single => {
             let escaped = input_string
@@ -126,12 +126,12 @@ fn print_result(input_string: String, quote_style: QuoteStyle) {
                 .replace('\n', "\\n")
                 .replace('\r', "\\r")
                 .replace('\t', "\\t");
-            format!("'{}'", escaped)
+            format!("'{escaped}'")
         }
         QuoteStyle::Raw => {
             // For raw strings, we need to find a delimiter that doesn't conflict
             let delimiter = find_raw_string_delimiter(&input_string);
-            format!("r{}\"{}\"{}", delimiter, input_string, delimiter)
+            format!("r{delimiter}\"{input_string}\"{delimiter}")
         }
     };
 
@@ -274,18 +274,18 @@ mod tests {
     #[test]
     fn test_argument_parsing_logic() {
         // Test the logic of argument parsing without actually running main
-        let args = vec!["literalizer".to_string()];
+        let args = ["literalizer".to_string()];
         assert_eq!(args.len(), 1); // No arguments case
 
-        let args = vec!["literalizer".to_string(), "file.txt".to_string()];
+        let args = ["literalizer".to_string(), "file.txt".to_string()];
         assert_eq!(args.len(), 2); // File argument case
         assert_eq!(args[1], "file.txt");
 
-        let args = vec!["literalizer".to_string(), "--help".to_string()];
+        let args = ["literalizer".to_string(), "--help".to_string()];
         assert_eq!(args.len(), 2);
         assert!(args[1] == "-h" || args[1] == "--help");
 
-        let args = vec![
+        let args = [
             "literalizer".to_string(),
             "arg1".to_string(),
             "arg2".to_string(),
@@ -359,7 +359,7 @@ mod tests {
             .replace('\n', "\\n")
             .replace('\r', "\\r")
             .replace('\t', "\\t");
-        test_double = format!("\"{}\"", test_double);
+        test_double = format!("\"{test_double}\"");
 
         let expected_double = "\"Hello \\\"world\\\"\\nTab:\\tNewline:\\nEnd\"";
         assert_eq!(test_double, expected_double);
@@ -372,7 +372,7 @@ mod tests {
             .replace('\n', "\\n")
             .replace('\r', "\\r")
             .replace('\t', "\\t");
-        test_single = format!("'{}'", test_single);
+        test_single = format!("'{test_single}'");
 
         let expected_single = "'Hello \"world\"\\nTab:\\tNewline:\\nEnd'";
         assert_eq!(test_single, expected_single);
