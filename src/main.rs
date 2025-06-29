@@ -51,16 +51,13 @@ fn read_piped_input() -> Result<String, io::Error> {
 fn read_file_input(file_path: &str) -> Result<String, Box<dyn Error>> {
     // Check if file exists
     if !file_handler::file_exists(file_path) {
-        eprintln!(
-            "Error: File '{}' not found or is not a regular file.",
-            file_path
-        );
+        eprintln!("Error: File '{file_path}' not found or is not a regular file.");
         process::exit(1);
     }
 
     // Read file content
     file_handler::read_file_content(file_path).map_err(|e| {
-        eprintln!("Error reading file '{}': {}", file_path, e);
+        eprintln!("Error reading file '{file_path}': {e}");
         process::exit(1);
     })
 }
@@ -135,7 +132,7 @@ fn print_result(input_string: String, quote_style: QuoteStyle) {
         }
     };
 
-    println!("{}", escaped);
+    println!("{escaped}");
 }
 
 fn find_raw_string_delimiter(content: &str) -> String {

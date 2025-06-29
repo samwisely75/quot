@@ -1,0 +1,15 @@
+# Clippy configuration for the quot project
+# This file configures clippy lints to maintain code quality and consistency
+
+# The key setting: allow mixed uninlined format args but warn about pure uninlined usage
+# This allows flexibility while encouraging modern syntax
+allow-mixed-uninlined-format-args = false
+
+# Complexity thresholds
+cognitive-complexity-threshold = 25
+too-many-arguments-threshold = 7
+
+# Additional useful configurations
+enum-variant-name-threshold = 3
+type-complexity-threshold = 250
+trivial-copy-size-limit = 128

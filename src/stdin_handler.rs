@@ -16,7 +16,7 @@ pub fn disable_raw_mode() -> Result<(), io::Error> {
 }
 
 pub fn print_prompt_with_line_number(line_number: usize) -> Result<(), io::Error> {
-    print!("{:2}> ", line_number);
+    print!("{line_number:2}> ");
     io::stdout().flush()
 }
 
@@ -123,7 +123,7 @@ pub fn redraw_line_after_insert(
 
     // Print the rest of the line from the redraw point
     let rest_of_line = &current_line[redraw_from..];
-    print!("{}", rest_of_line);
+    print!("{rest_of_line}");
 
     // Move cursor to the final position (after the inserted character)
     let final_col = prompt_width + final_cursor_pos;
@@ -229,7 +229,7 @@ pub fn redraw_line_from_cursor(
 
     // Print the rest of the line from cursor position
     let rest_of_line = &current_line[cursor_pos..];
-    print!("{}", rest_of_line);
+    print!("{rest_of_line}");
 
     // Move cursor to the correct final position (where the cursor should be after the edit)
     let final_col = prompt_width + cursor_pos;
@@ -271,7 +271,7 @@ pub fn handle_paste_event(
             *cursor_pos = trimmed_line.len();
             let new_line_number = builder.len() + 1;
             print_prompt_with_line_number(new_line_number)?;
-            print!("{}", trimmed_line);
+            print!("{trimmed_line}");
         }
     }
     io::stdout().flush()

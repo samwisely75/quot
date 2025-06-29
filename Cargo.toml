@@ -22,3 +22,14 @@ exclude = [
 atty = "0.2.14"
 regex = "1.0"
 crossterm = "0.27"
+
+# Clippy configuration to enforce code quality and modern Rust idioms
+[lints.clippy]
+# The key lint: enforce inline variable syntax in format macros
+uninlined_format_args = "warn"
+# Additional code quality lints
+redundant_closure_for_method_calls = "warn"
+manual_let_else = "warn"
+# Complexity management
+cognitive_complexity = { level = "warn", priority = -1 }
+too_many_arguments = { level = "warn", priority = -1 }
