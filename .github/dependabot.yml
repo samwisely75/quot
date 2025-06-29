@@ -1,10 +1,11 @@
 version: 2
 updates:
+  # Temporarily disabled - will re-enable after fixing CI issues
   # Enable version updates for Cargo
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"  # Changed from weekly to monthly to reduce noise
       day: "monday"
       time: "06:00"
     commit-message:
@@ -17,11 +18,12 @@ updates:
       - "samwisely75"
     open-pull-requests-limit: 5
     
+  # Temporarily disabled - will re-enable after fixing CI issues  
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"  # Changed from weekly to monthly to reduce noise
       day: "monday"
       time: "06:00"
     commit-message:
