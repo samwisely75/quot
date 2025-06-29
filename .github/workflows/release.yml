@@ -1,0 +1,195 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release'
+        required: true
+        default: 'v0.1.0'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          # Windows
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            name: quot-windows-x64.exe
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            name: quot-windows-arm64.exe
+          
+          # macOS
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            name: quot-macos-x64
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            name: quot-macos-arm64
+          
+          # Linux
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            name: quot-linux-x64
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            name: quot-linux-arm64
+
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross-compilation tools (Linux ARM64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Configure cross-compilation (Linux ARM64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          mkdir -p ~/.cargo
+          echo '[target.aarch64-unknown-linux-gnu]' >> ~/.cargo/config.toml
+          echo 'linker = "aarch64-linux-gnu-gcc"' >> ~/.cargo/config.toml
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Prepare binary (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cp target/${{ matrix.target }}/release/quot.exe ${{ matrix.name }}
+
+      - name: Prepare binary (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cp target/${{ matrix.target }}/release/quot ${{ matrix.name }}
+          chmod +x ${{ matrix.name }}
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ matrix.name }}
+          if-no-files-found: error
+
+  test-binaries:
+    needs: build
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            binary: quot-linux-x64
+          - os: macos-latest
+            binary: quot-macos-x64
+          - os: windows-latest
+            binary: quot-windows-x64.exe
+
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Download binary
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.binary }}
+
+      - name: Test binary (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          chmod +x ${{ matrix.binary }}
+          echo "Hello World" | ./${{ matrix.binary }} --double
+
+      - name: Test binary (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "Hello World" | ./${{ matrix.binary }} --double
+
+  create-release:
+    needs: [build, test-binaries]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          find artifacts -name "quot-*" -exec cp {} release-assets/ \;
+          ls -la release-assets/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: Release ${{ github.event.inputs.tag || github.ref_name }}
+          draft: false
+          prerelease: false
+          files: release-assets/*
+          body: |
+            ## What's Changed
+            
+            * Cross-platform release for Windows, macOS, and Linux
+            * Supports both x64 and ARM64 architectures
+            * Available on crates.io for easy installation
+            
+            ## Installation
+            
+            ### Using Cargo (Recommended)
+            
+            ```bash
+            cargo install quot
+            ```
+            
+            ### Pre-built Binaries
+            
+            Download the appropriate binary for your platform from the assets below:
+            
+            ### Windows
+            - `quot-windows-x64.exe` - Windows 64-bit (Intel/AMD)
+            - `quot-windows-arm64.exe` - Windows ARM64
+            
+            ### macOS
+            - `quot-macos-x64` - macOS Intel (x64)
+            - `quot-macos-arm64` - macOS Apple Silicon (M1/M2)
+            
+            ### Linux
+            - `quot-linux-x64` - Linux 64-bit (Intel/AMD)
+            - `quot-linux-arm64` - Linux ARM64
+            
+            ## Usage
+            
+            ```bash
+            # Interactive mode
+            ./quot
+            
+            # From file
+            ./quot input.txt
+            
+            # From pipe with different quote styles
+            echo "Hello World" | ./quot --single
+            cat file.txt | ./quot --raw
+            ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
