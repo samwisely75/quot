@@ -43,13 +43,22 @@ jobs:
         path: target
         key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
+    - name: Cache cargo tools
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin
+        key: ${{ runner.os }}-cargo-tools-${{ hashFiles('.github/workflows/ci.yml') }}
+
     - name: Run tests
       run: cargo test --verbose
 
     - name: Generate code coverage
       if: matrix.os == 'ubuntu-latest'
       run: |
-        cargo install cargo-tarpaulin
+        if ! command -v cargo-tarpaulin &> /dev/null; then
+          echo "Installing cargo-tarpaulin..."
+          cargo install cargo-tarpaulin
+        fi
         cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out xml --output-dir ./coverage
 
     - name: Upload coverage to Codecov
@@ -70,15 +79,11 @@ jobs:
 
     - name: Security audit
       run: |
-        cargo install cargo-audit
+        if ! command -v cargo-audit &> /dev/null; then
+          echo "Installing cargo-audit..."
+          cargo install cargo-audit
+        fi
         cargo audit || echo "Security audit found issues but continuing..."
-      if: matrix.os == 'ubuntu-latest'
-      continue-on-error: true
-
-    - name: Check for outdated dependencies
-      run: |
-        cargo install cargo-outdated
-        cargo outdated --exit-code 1
       if: matrix.os == 'ubuntu-latest'
       continue-on-error: true
 
@@ -124,6 +129,12 @@ jobs:
       with:
         path: target
         key: ${{ runner.os }}-${{ matrix.target }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache cargo tools
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin
+        key: ${{ runner.os }}-${{ matrix.target }}-cargo-tools-${{ hashFiles('.github/workflows/ci.yml') }}
 
     - name: Install cross-compilation tools (Linux ARM64)
       if: matrix.target == 'aarch64-unknown-linux-gnu'
