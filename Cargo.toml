@@ -21,7 +21,7 @@ exclude = [
 [dependencies]
 atty = "0.2.14"
 regex = "1.0"
-crossterm = "0.27"
+crossterm = "0.29"
 arboard = "3.4"
 
 # Clippy configuration to enforce code quality and modern Rust idioms
