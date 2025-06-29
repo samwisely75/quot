@@ -1,12 +1,12 @@
 [package]
 name = "quot"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "Apache-2.0"
 description = "A fast and flexible command-line tool that converts text input into escaped string literals"
-repository = "https://github.com/elasticsatch/quot"
-homepage = "https://github.com/elasticsatch/quot"
-documentation = "https://github.com/elasticsatch/quot#readme"
+repository = "https://github.com/samwisely75/quot"
+homepage = "https://github.com/samwisely75/quot"
+documentation = "https://github.com/samwisely75/quot#readme"
 authors = ["Satoshi Iizuka <satoshi.iizuka@elastic.co>"]
 keywords = ["cli", "text", "escape", "string", "literal"]
 categories = ["command-line-utilities", "text-processing"]
