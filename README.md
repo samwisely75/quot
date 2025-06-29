@@ -1,6 +1,28 @@
 # Quot
 
-A fast and flexible Rust command-line tool that converts text input into escaped string literals with support for multiple quote styles. Perfect for developers who need to quickly escape text for use in code.
+A fast and flexible Rust command-line tool that converts text input into escaped string literals with support for multiple quote styles. Perfect for develope### Clipboard Support
+
+The `--clipboard` flag allows you to process text directly from your system clipboard:
+
+```bash
+# Copy some text to clipboard first, then:
+quot --clipboard                # Double quotes (default)
+quot --clipboard --single       # Single quotes  
+quot --clipboard --raw          # Raw strings
+```
+
+**Example workflow:**
+1. Copy multi-line text to your clipboard:
+   ```
+   Hello "world"
+   Line with tab:    here
+   Backslash: \test
+   ```
+
+2. Run: `quot --clipboard`
+3. Output: `"Hello \"world\"\nLine with tab:\there\nBackslash: \\test"`
+
+The clipboard feature works on all supported platforms (Windows, macOS, Linux) and handles multi-line content seamlessly.
 
 ## Quick Example
 
@@ -16,13 +38,14 @@ echo 'Hello "world"' | quot --raw       # r#"Hello "world""#
 
 ## Features
 
-- 🚀 **Multiple Input Methods**: Interactive keyboard input, piped input, or file input
+- 🚀 **Multiple Input Methods**: Interactive keyboard input, piped input, file input, or clipboard input
+- 📋 **Clipboard Support**: Direct text processing from system clipboard with `--clipboard` flag
 - 📝 **Interactive Editing**: Full cursor movement, insert/delete, and paste support
 - � **Smart Clipboard Paste**: Seamlessly handles multi-line clipboard content with proper formatting
 - �📊 **Line Numbers**: Visual line numbering in interactive mode for multi-line input
 - 🎨 **Multiple Quote Styles**: Double quotes, single quotes, or raw strings (Rust-style)
 - ⚡ **Fast & Lightweight**: Built in Rust for optimal performance
-- 🧪 **Well Tested**: Comprehensive test suite with 16+ tests
+- 🧪 **Well Tested**: Comprehensive test suite with 17+ tests
 
 ## Installation
 
@@ -96,6 +119,9 @@ quot input.txt
 # Read from piped input
 echo "Hello world" | quot
 cat file.txt | quot
+
+# Read from system clipboard
+quot --clipboard
 ```
 
 ### Quote Style Options
@@ -153,6 +179,27 @@ When you run `quot` without arguments and input isn't piped, you enter interacti
 - **Home/End**: Jump to beginning/end of line
 - **Backspace/Delete**: Remove characters
 - **Paste (Ctrl+V)**: Multi-line clipboard paste with intelligent formatting and line numbering
+
+### Clipboard Support
+
+The `--clipboard` flag allows you to process text directly from your system clipboard:
+
+```bash
+# Copy some text to clipboard first, then:
+quot --clipboard                # Double quotes (default)
+quot --clipboard --single       # Single quotes  
+quot --clipboard --raw          # Raw strings
+
+# Example workflow:
+# 1. Copy this multi-line text to clipboard:
+#    Hello "world"
+#    Line with tab:	here
+#    Backslash: \test
+# 2. Run: quot --clipboard
+# 3. Output: "Hello \"world\"\nLine with tab:\here\nBackslash: \\test"
+```
+
+The clipboard feature works on all supported platforms (Windows, macOS, Linux) and handles multi-line content seamlessly.
 
 ## Examples
 
