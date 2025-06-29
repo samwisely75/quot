@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
   # Run on dependency-related changes
   push:
+    branches: [ main ]
     paths:
       - 'Cargo.toml'
       - 'Cargo.lock'

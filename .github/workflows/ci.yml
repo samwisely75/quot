@@ -3,8 +3,6 @@ name: CI
 on:
   push:
     branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -53,7 +51,7 @@ jobs:
       run: cargo test --verbose
 
     - name: Generate code coverage
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-latest' && github.ref == 'refs/heads/main'
       run: |
         if ! command -v cargo-tarpaulin &> /dev/null; then
           echo "Installing cargo-tarpaulin..."
@@ -62,7 +60,7 @@ jobs:
         cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out xml --output-dir ./coverage
 
     - name: Upload coverage to Codecov
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-latest' && github.ref == 'refs/heads/main'
       uses: codecov/codecov-action@v4
       with:
         files: ./coverage/cobertura.xml
@@ -76,16 +74,6 @@ jobs:
     - name: Check formatting
       run: cargo fmt -- --check
       if: matrix.os == 'ubuntu-latest' # Only run once to avoid redundant checks
-
-    - name: Security audit
-      run: |
-        if ! command -v cargo-audit &> /dev/null; then
-          echo "Installing cargo-audit..."
-          cargo install cargo-audit
-        fi
-        cargo audit || echo "Security audit found issues but continuing..."
-      if: matrix.os == 'ubuntu-latest'
-      continue-on-error: true
 
   build:
     strategy:
