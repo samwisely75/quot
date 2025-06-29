@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -46,6 +46,19 @@ jobs:
     - name: Run tests
       run: cargo test --verbose
 
+    - name: Generate code coverage
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        cargo install cargo-tarpaulin
+        cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
+
+    - name: Upload coverage to Codecov
+      if: matrix.os == 'ubuntu-latest'
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./cobertura.xml
+        fail_ci_if_error: false
+
     - name: Run clippy
       run: cargo clippy -- -D warnings
       if: matrix.os == 'ubuntu-latest' # Only run once to avoid redundant checks
@@ -53,6 +66,19 @@ jobs:
     - name: Check formatting
       run: cargo fmt -- --check
       if: matrix.os == 'ubuntu-latest' # Only run once to avoid redundant checks
+
+    - name: Security audit
+      run: |
+        cargo install cargo-audit
+        cargo audit
+      if: matrix.os == 'ubuntu-latest'
+
+    - name: Check for outdated dependencies
+      run: |
+        cargo install cargo-outdated
+        cargo outdated --exit-code 1
+      if: matrix.os == 'ubuntu-latest'
+      continue-on-error: true
 
   build:
     strategy:
