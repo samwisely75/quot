@@ -45,6 +45,11 @@ print_status "Starting release process for version $CURRENT_VERSION"
 # Step 1: Create release branch
 RELEASE_BRANCH="release/$CURRENT_VERSION"
 print_status "Creating release branch: $RELEASE_BRANCH"
+
+# Clean up any existing conflicting tags that might cause issues
+print_status "Cleaning up any conflicting tags..."
+./cleanup-tags.sh
+
 git checkout -b "$RELEASE_BRANCH"
 
 # Step 2: Run comprehensive tests
@@ -120,6 +125,9 @@ print_status "https://github.com/samwisely75/quot/actions"
 print_status ""
 print_status "To create a release tag (optional manual step):"
 print_status "git tag v$CURRENT_VERSION && git push origin v$CURRENT_VERSION"
+print_status ""
+print_warning "IMPORTANT: Only use 'v' prefixed tags (e.g., v$CURRENT_VERSION)"
+print_warning "Never create tags with 'release/' prefix to avoid git conflicts!"
 
 print_success "Release preparation completed successfully!"
 print_status "The release workflow is now running automatically!"
