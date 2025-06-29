@@ -48,7 +48,15 @@ print_status "Creating release branch: $RELEASE_BRANCH"
 
 # Clean up any existing conflicting tags that might cause issues
 print_status "Cleaning up any conflicting tags..."
-./cleanup-tags.sh
+if git tag -l | grep -q "^release/$CURRENT_VERSION$"; then
+    print_warning "Found conflicting tag 'release/$CURRENT_VERSION', deleting it..."
+    git tag -d "release/$CURRENT_VERSION"
+fi
+
+if git ls-remote --tags origin | grep -q "refs/tags/release/$CURRENT_VERSION$"; then
+    print_warning "Found conflicting remote tag 'release/$CURRENT_VERSION', deleting it..."
+    git push origin ":refs/tags/release/$CURRENT_VERSION"
+fi
 
 git checkout -b "$RELEASE_BRANCH"
 
@@ -107,11 +115,20 @@ git push origin "$RELEASE_BRANCH"
 
 print_success "Release branch pushed successfully!"
 
-# Step 10: Instructions for next steps
+# Step 10: Create and push release tag
+VERSION_TAG="v$CURRENT_VERSION"
+print_status "Creating release tag: $VERSION_TAG"
+git tag "$VERSION_TAG"
+git push origin "$VERSION_TAG"
+
+print_success "Release tag '$VERSION_TAG' created and pushed!"
+
+# Step 11: Final status
 print_success "=================================="
-print_success "RELEASE BRANCH READY!"
+print_success "RELEASE FULLY AUTOMATED!"
 print_success "=================================="
 print_status "Release branch '$RELEASE_BRANCH' has been created and pushed."
+print_status "Release tag '$VERSION_TAG' has been created and pushed."
 print_status ""
 print_status "The release workflow will automatically:"
 print_status "1. Build cross-platform binaries"
@@ -122,12 +139,6 @@ print_status "5. Clean up release branch"
 print_status ""
 print_status "You can monitor the release at:"
 print_status "https://github.com/samwisely75/quot/actions"
-print_status ""
-print_status "To create a release tag (optional manual step):"
-print_status "git tag v$CURRENT_VERSION && git push origin v$CURRENT_VERSION"
-print_status ""
-print_warning "IMPORTANT: Only use 'v' prefixed tags (e.g., v$CURRENT_VERSION)"
-print_warning "Never create tags with 'release/' prefix to avoid git conflicts!"
 
-print_success "Release preparation completed successfully!"
-print_status "The release workflow is now running automatically!"
+print_success "🚀 Release v$CURRENT_VERSION is now fully automated!"
+print_status "🎯 No further manual steps required!"
