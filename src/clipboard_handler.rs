@@ -1,5 +1,5 @@
-use std::error::Error;
 use arboard::Clipboard;
+use std::error::Error;
 
 /// Read text content from the system clipboard
 pub fn read_clipboard_input() -> Result<String, Box<dyn Error>> {
