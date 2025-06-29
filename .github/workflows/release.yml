@@ -286,5 +286,25 @@ jobs:
         # Delete the release branch after successful merge
         RELEASE_BRANCH=${GITHUB_REF#refs/heads/}
         echo "Deleting release branch: $RELEASE_BRANCH"
-        git push origin --delete $RELEASE_BRANCH
+        
+        # Debug: Show what branches exist
+        echo "Local branches:"
+        git branch -a | grep "$RELEASE_BRANCH" || echo "No local branches found"
+        
+        echo "Remote branches:"
+        git ls-remote --heads origin | grep "$RELEASE_BRANCH" || echo "No remote branches found"
+        
+        # Try different deletion approaches
+        if git ls-remote --heads origin | grep -q "refs/heads/$RELEASE_BRANCH"; then
+          echo "Attempting to delete remote branch: refs/heads/$RELEASE_BRANCH"
+          git push origin --delete "$RELEASE_BRANCH" || {
+            echo "Standard delete failed, trying alternative syntax..."
+            git push origin ":refs/heads/$RELEASE_BRANCH" || {
+              echo "⚠️  Could not delete remote branch, may already be deleted"
+            }
+          }
+        else
+          echo "Remote branch $RELEASE_BRANCH not found, may already be deleted"
+        fi
+        
         echo "✅ Cleaned up release branch"
