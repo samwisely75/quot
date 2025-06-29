@@ -5,10 +5,10 @@ use std::{
     process,
 };
 
-use arboard::Clipboard;
 use atty::Stream;
 use crossterm::event::{self, Event};
 
+mod clipboard_handler;
 mod file_handler;
 mod stdin_handler;
 
@@ -120,12 +120,6 @@ fn read_keyboard_input() -> Result<String, io::Error> {
     Ok(builder.join("\n"))
 }
 
-fn read_clipboard_input() -> Result<String, Box<dyn Error>> {
-    let mut clipboard = Clipboard::new()?;
-    let content = clipboard.get_text()?;
-    Ok(content)
-}
-
 fn print_result(input_string: String, quote_style: QuoteStyle) {
     let escaped = match quote_style {
         QuoteStyle::Double => {
@@ -205,7 +199,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         1 => {
             // No arguments - check clipboard first, then piped, then interactive
             if config.use_clipboard {
-                read_clipboard_input()?
+                clipboard_handler::read_clipboard_input()?
             } else if has_piped_input() {
                 read_piped_input()?
             } else {
@@ -224,7 +218,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             // If clipboard is requested, ignore the file argument
             if config.use_clipboard {
-                read_clipboard_input()?
+                clipboard_handler::read_clipboard_input()?
             } else {
                 // Read file content
                 read_file_input(arg)?

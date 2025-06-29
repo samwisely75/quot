@@ -8,11 +8,11 @@ use crossterm::{
 };
 
 pub fn enable_raw_mode() -> Result<(), io::Error> {
-    terminal::enable_raw_mode().map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+    terminal::enable_raw_mode().map_err(io::Error::other)
 }
 
 pub fn disable_raw_mode() -> Result<(), io::Error> {
-    terminal::disable_raw_mode().map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+    terminal::disable_raw_mode().map_err(io::Error::other)
 }
 
 pub fn print_prompt_with_line_number(line_number: usize) -> Result<(), io::Error> {
@@ -29,7 +29,7 @@ fn get_prompt_width(line_number: usize) -> usize {
 pub fn move_to_next_line() -> Result<(), io::Error> {
     io::stdout()
         .execute(cursor::MoveToColumn(0))
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        .map_err(io::Error::other)?;
     println!();
     Ok(())
 }
@@ -114,12 +114,12 @@ pub fn redraw_line_after_insert(
 
     io::stdout()
         .execute(cursor::MoveToColumn(redraw_col as u16))
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        .map_err(io::Error::other)?;
 
     // Clear from current position to end of line
     io::stdout()
         .execute(terminal::Clear(ClearType::UntilNewLine))
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        .map_err(io::Error::other)?;
 
     // Print the rest of the line from the redraw point
     let rest_of_line = &current_line[redraw_from..];
@@ -129,7 +129,7 @@ pub fn redraw_line_after_insert(
     let final_col = prompt_width + final_cursor_pos;
     io::stdout()
         .execute(cursor::MoveToColumn(final_col as u16))
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        .map_err(io::Error::other)?;
 
     io::stdout().flush()
 }
@@ -166,7 +166,7 @@ pub fn move_cursor_left(cursor_pos: &mut usize, _line_number: usize) -> Result<(
         *cursor_pos -= 1;
         io::stdout()
             .execute(cursor::MoveLeft(1))
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            .map_err(io::Error::other)?;
     }
     Ok(())
 }
@@ -180,7 +180,7 @@ pub fn move_cursor_right(
         *cursor_pos += 1;
         io::stdout()
             .execute(cursor::MoveRight(1))
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            .map_err(io::Error::other)?;
     }
     Ok(())
 }
@@ -190,7 +190,7 @@ pub fn move_cursor_to_start(cursor_pos: &mut usize, line_number: usize) -> Resul
     let prompt_width = get_prompt_width(line_number);
     io::stdout()
         .execute(cursor::MoveToColumn(prompt_width as u16))
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        .map_err(io::Error::other)?;
     *cursor_pos = 0;
     Ok(())
 }
@@ -204,7 +204,7 @@ pub fn move_cursor_to_end(
     let target_pos = prompt_width + current_line.len();
     io::stdout()
         .execute(cursor::MoveToColumn(target_pos as u16))
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        .map_err(io::Error::other)?;
     *cursor_pos = current_line.len();
     Ok(())
 }
@@ -220,12 +220,12 @@ pub fn redraw_line_from_cursor(
 
     io::stdout()
         .execute(cursor::MoveToColumn(redraw_start_col as u16))
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        .map_err(io::Error::other)?;
 
     // Clear from current position to end of line
     io::stdout()
         .execute(terminal::Clear(ClearType::UntilNewLine))
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        .map_err(io::Error::other)?;
 
     // Print the rest of the line from cursor position
     let rest_of_line = &current_line[cursor_pos..];
@@ -235,7 +235,7 @@ pub fn redraw_line_from_cursor(
     let final_col = prompt_width + cursor_pos;
     io::stdout()
         .execute(cursor::MoveToColumn(final_col as u16))
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        .map_err(io::Error::other)?;
 
     io::stdout().flush()
 }

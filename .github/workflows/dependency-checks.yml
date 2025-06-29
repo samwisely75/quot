@@ -1,0 +1,106 @@
+name: Dependency Checks
+
+on:
+  # Run weekly on Mondays at 9 AM UTC
+  schedule:
+    - cron: '0 9 * * 1'
+  # Allow manual trigger
+  workflow_dispatch:
+  # Run on dependency-related changes
+  push:
+    branches: [ main ]
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/registry
+        key: ubuntu-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Cache cargo index
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/git
+        key: ubuntu-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Cache cargo tools
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin
+        key: ubuntu-cargo-tools-dependency-${{ hashFiles('.github/workflows/dependency-checks.yml') }}
+
+    - name: Install cargo-audit
+      run: |
+        if ! command -v cargo-audit &> /dev/null; then
+          echo "Installing cargo-audit..."
+          cargo install cargo-audit
+        fi
+
+    - name: Install cargo-outdated
+      run: |
+        if ! command -v cargo-outdated &> /dev/null; then
+          echo "Installing cargo-outdated..."
+          cargo install cargo-outdated
+        fi
+
+    - name: Security audit
+      run: cargo audit
+
+    - name: Check for outdated dependencies
+      run: |
+        echo "Checking for outdated dependencies..."
+        cargo outdated --exit-code 1 || echo "Found outdated dependencies"
+        
+    - name: Create issue for outdated dependencies
+      if: failure()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const title = 'Outdated Dependencies Found';
+          const body = `
+          The weekly dependency check found outdated dependencies.
+          
+          Please run \`cargo outdated\` locally to see which dependencies need updating.
+          
+          To update dependencies:
+          1. Run \`cargo update\` to update within semver constraints
+          2. For major version updates, manually update \`Cargo.toml\`
+          3. Test thoroughly and create a PR
+          
+          This issue was created automatically by the dependency-checks workflow.
+          `;
+          
+          // Check if issue already exists
+          const issues = await github.rest.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'open',
+            labels: ['dependencies']
+          });
+          
+          const existingIssue = issues.data.find(issue => issue.title === title);
+          
+          if (!existingIssue) {
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['dependencies', 'maintenance']
+            });
+          }
