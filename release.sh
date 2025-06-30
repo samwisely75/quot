@@ -2,8 +2,26 @@
 
 # Release script for quot following git flow workflow
 # This script automates the entire release process
+#
+# Usage:
+#   ./release.sh           - Run full release process with version increment
+#   ./release.sh --dry-run - Preview version increment without making changes
+#   ./release.sh -n        - Same as --dry-run
+#
+# Version increment options:
+#   1) patch - Bug fixes (0.1.3 -> 0.1.4)
+#   2) minor - New features (0.1.3 -> 0.2.0)  
+#   3) major - Breaking changes (0.1.3 -> 1.0.0)
+#   4) keep  - Keep current version (re-release same version)
+#   5) custom - Enter version manually
 
 set -e  # Exit on any error
+
+# Check for dry-run flag
+DRY_RUN=false
+if [ "$1" = "--dry-run" ] || [ "$1" = "-n" ]; then
+    DRY_RUN=true
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -39,6 +57,124 @@ if [ "$CURRENT_BRANCH" != "develop" ]; then
     print_error "Must be on develop branch to start release. Currently on: $CURRENT_BRANCH"
     exit 1
 fi
+
+# Function to increment version based on type
+increment_version() {
+    local version=$1
+    local type=$2
+    
+    IFS='.' read -ra VERSION_PARTS <<< "$version"
+    local major=${VERSION_PARTS[0]}
+    local minor=${VERSION_PARTS[1]}
+    local patch=${VERSION_PARTS[2]}
+    
+    case $type in
+        "major")
+            major=$((major + 1))
+            minor=0
+            patch=0
+            ;;
+        "minor")
+            minor=$((minor + 1))
+            patch=0
+            ;;
+        "patch")
+            patch=$((patch + 1))
+            ;;
+        *)
+            print_error "Invalid version type: $type. Use major, minor, or patch"
+            exit 1
+            ;;
+    esac
+    
+    echo "$major.$minor.$patch"
+}
+
+# Prompt for version increment type
+print_status "Current version: $CURRENT_VERSION"
+echo ""
+print_status "Select version increment type:"
+print_status "1) patch (0.1.3 -> 0.1.4) - Bug fixes"
+print_status "2) minor (0.1.3 -> 0.2.0) - New features"
+print_status "3) major (0.1.3 -> 1.0.0) - Breaking changes"
+print_status "4) keep ($CURRENT_VERSION) - Keep current version (re-release)"
+print_status "5) custom - Enter version manually"
+echo ""
+
+read -p "Enter your choice (1-5): " choice
+
+case $choice in
+    1)
+        NEW_VERSION=$(increment_version "$CURRENT_VERSION" "patch")
+        ;;
+    2)
+        NEW_VERSION=$(increment_version "$CURRENT_VERSION" "minor")
+        ;;
+    3)
+        NEW_VERSION=$(increment_version "$CURRENT_VERSION" "major")
+        ;;
+    4)
+        NEW_VERSION=$CURRENT_VERSION
+        print_warning "Keeping current version: $NEW_VERSION"
+        print_warning "Note: This may cause conflicts if the version was already released."
+        ;;
+    5)
+        read -p "Enter new version (e.g., 1.0.0): " NEW_VERSION
+        # Validate version format
+        if ! [[ $NEW_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            print_error "Invalid version format. Use semantic versioning (e.g., 1.0.0)"
+            exit 1
+        fi
+        ;;
+    *)
+        print_error "Invalid choice. Exiting."
+        exit 1
+        ;;
+esac
+
+print_status "Updating version from $CURRENT_VERSION to $NEW_VERSION"
+
+if [ "$DRY_RUN" = true ]; then
+    print_warning "DRY RUN MODE - No changes will be made"
+    if [ "$CURRENT_VERSION" = "$NEW_VERSION" ]; then
+        print_status "Would keep current version: $NEW_VERSION (no version bump)"
+    else
+        print_status "Would update version in Cargo.toml from $CURRENT_VERSION to $NEW_VERSION"
+    fi
+    print_status "Would commit version changes (if any)"
+    print_status "Would continue with release process for version $NEW_VERSION"
+    exit 0
+fi
+
+# Update version in Cargo.toml (only if version changed)
+if [ "$CURRENT_VERSION" != "$NEW_VERSION" ]; then
+    sed -i '' "s/^version = \".*\"/version = \"$NEW_VERSION\"/" Cargo.toml
+
+    # Verify the change was made
+    UPDATED_VERSION=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+    if [ "$UPDATED_VERSION" != "$NEW_VERSION" ]; then
+        print_error "Failed to update version in Cargo.toml"
+        exit 1
+    fi
+
+    print_success "Version updated to $NEW_VERSION in Cargo.toml"
+
+    # Update Cargo.lock
+    print_status "Updating Cargo.lock..."
+    cargo check --quiet
+
+    # Commit the version change
+    print_status "Committing version bump..."
+    git add Cargo.toml Cargo.lock
+    git commit -m "bump version to $NEW_VERSION"
+
+    print_success "Version bump committed!"
+else
+    print_success "Keeping current version: $NEW_VERSION (no version bump needed)"
+fi
+
+# Set CURRENT_VERSION to the new version for the rest of the script
+CURRENT_VERSION=$NEW_VERSION
 
 print_status "Starting release process for version $CURRENT_VERSION"
 
