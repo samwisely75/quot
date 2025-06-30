@@ -31,14 +31,14 @@ enum QuoteFormat {
 #[command(version = env!("CARGO_PKG_VERSION"))]
 struct Args {
     /// Quote format to use
-    #[arg(long, short = 't', value_enum, default_value_t = QuoteFormat::Double)]
+    #[arg(long, short = 'm', value_enum, default_value_t = QuoteFormat::Double)]
     format: QuoteFormat,
 
     /// Read text from system clipboard
     #[arg(long, short = 'c')]
     clipboard: bool,
 
-    /// File to read from (if not specified, reads from stdin)
+    /// File to read from
     #[arg(long, short = 'f')]
     file: Option<String>,
 

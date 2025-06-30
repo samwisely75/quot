@@ -134,30 +134,30 @@ jobs:
           \fBquot\fP converts input text to escaped string literals in various formats.
           .SH OPTIONS
           .TP
-          \fB\-\-double\fR
-          Use double quotes (default)
+          \fB\-m, \-\-format\fR \fIFORMAT\fR
+          Quote format to use: double, single, or raw (default: double)
           .TP
-          \fB\-\-single\fR
-          Use single quotes  
-          .TP
-          \fB\-\-raw\fR
-          Use raw strings (Rust style)
-          .TP
-          \fB\-\-clipboard\fR
+          \fB\-c, \-\-clipboard\fR
           Read text from system clipboard
+          .TP
+          \fB\-f, \-\-file\fR \fIFILE\fR
+          File to read from
           .TP
           \fB\-h, \-\-help\fR
           Show help message
           .TP
           \fB\-V, \-\-version\fR
           Show version information
+          .SH DESCRIPTION
+          \fBquot\fP converts input text to escaped string literals in various formats.
+          If no file, clipboard flag, or piped input is provided, enters interactive editor mode.
           .SH EXAMPLES
           .TP
           echo "Hello World" | quot
           .TP
           quot input.txt
           .TP
-          quot --single < file.txt
+          quot --format single < file.txt
           .SH AUTHOR
           Written by Satoshi Iizuka.
           .SH REPORTING BUGS
@@ -309,12 +309,12 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: |
           chmod +x ${{ matrix.binary }}
-          echo "Hello World" | ./${{ matrix.binary }} --double
+          echo "Hello World" | ./${{ matrix.binary }} --format double
 
       - name: Test binary (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          echo "Hello World" | ./${{ matrix.binary }} --double
+          echo "Hello World" | ./${{ matrix.binary }} --format double
 
   create-release:
     needs: [build, build-packages, test-binaries]
@@ -454,8 +454,8 @@ jobs:
             ./quot input.txt
             
             # From pipe with different quote styles
-            echo "Hello World" | ./quot --single
-            cat file.txt | ./quot --raw
+            echo "Hello World" | ./quot --format single
+            cat file.txt | ./quot --format raw
             ```
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -533,7 +533,7 @@ jobs:
           test do
             output = shell_output("#{bin}/quot --version 2>&1").strip
             assert_match version.to_s, output
-            assert_equal "\"Hello World\\n\"", shell_output("echo 'Hello World' | #{bin}/quot").strip
+            assert_equal "\"Hello World\\n\"", shell_output("echo 'Hello World' | #{bin}/quot --format double").strip
           end
         end
         EOF

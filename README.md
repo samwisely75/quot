@@ -1,198 +1,93 @@
 # Quot
 
-A fast and flexible Rust command-line tool that converts text input into escaped string literals with support for multiple quote styles. Perfect for develope### Clipboard Support
+[![CI](https://github.com/samwisely75/quot/actions/workflows/ci.yml/badge.svg)](https://github.com/samwisely75/quot/actions/workflows/ci.yml)
+[![Release](https://github.com/samwisely75/quot/actions/workflows/release.yml/badge.svg)](https://github.com/samwisely75/quot/actions/workflows/release.yml)
+[![Version](https://img.shields.io/github/v/release/samwisely75/quot)](https://github.com/samwisely75/quot/releases)
+[![License](https://img.shields.io/badge/license-Elastic%20License%202.0-blue.svg)](LICENSE)
+[![Crates.io](https://img.shields.io/crates/v/quot.svg)](https://crates.io/crates/quot)
 
-The `--clipboard` (or `-c`) flag allows you to process text directly from your system clipboard:
+A fast and flexible Rust command-line tool that converts text input into escaped string literals with support for multiple quote styles. Perfect for developers who need to quickly escape text for use in code.
 
-```bash
-# Copy some text to clipboard first, then:
-quot --clipboard                # Double quotes (default)
-quot -c --format single         # Single quotes  
-quot -c -t raw                  # Raw strings
-```
-
-**Example workflow:**
-1. Copy multi-line text to your clipboard:
-   ```
-   Hello "world"
-   Line with tab:    here
-   Backslash: \test
-   ```
-
-2. Run: `quot --clipboard`
-3. Output: `"Hello \"world\"\nLine with tab:\there\nBackslash: \\test"`
-
-The clipboard feature works on all supported platforms (Windows, macOS, Linux) and handles multi-line content seamlessly.
-
-## Quick Example
-
-```bash
-# Input: Hello "world"
-# Output: "Hello \"world\""
-echo 'Hello "world"' | quot
-
-# Different quote styles
-echo 'Hello "world"' | quot -t single    # 'Hello "world"'
-echo 'Hello "world"' | quot -t raw       # r#"Hello "world""#
-```
-
-## Features
-
-- 🚀 **Multiple Input Methods**: Interactive keyboard input, piped input, file input, or clipboard input
-- 📋 **Clipboard Support**: Direct text processing from system clipboard with `-c/--clipboard` flag
-- 🔧 **Short Flags**: Convenient short options: `-t` for format, `-f` for file, `-c` for clipboard
-- 📝 **Interactive Editing**: Full cursor movement, insert/delete, and paste support
-- 📊 **Line Numbers**: Visual line numbering in interactive mode for multi-line input
-- 🎨 **Multiple Quote Styles**: Double quotes, single quotes, or raw strings (Rust-style)
-- ⚡ **Fast & Lightweight**: Built in Rust for optimal performance
-- 🧪 **Well Tested**: Comprehensive test suite with 19+ tests
+- **Multiple Input Methods**: Interactive keyboard input, piped input, file input, or clipboard input
+- **Clipboard Support**: Direct text processing from system clipboard with `-c/--clipboard` flag
+- **Multiple Quote Styles**: Double quotes, single quotes, or raw strings (Rust-style)
+- **Fast & Lightweight**: Built in Rust for optimal performance
+- **Cross-Platform**: Works on macOS, Linux, and Windows
 
 ## Installation
 
-### Using Cargo (Recommended)
-
-If you have Rust installed, you can install `quot` directly from [crates.io](https://crates.io/crates/quot):
+### macOS
 
 ```bash
-cargo install quot
-```
-
-This will download, compile, and install the latest version. The binary will be available in your `$PATH` as `quot`.
-
-**Update to latest version:**
-
-```bash
-cargo install quot --force
-```
-
-### Using Homebrew (macOS)
-
-If you're on macOS and use Homebrew, you can install `quot` from our custom tap:
-
-```bash
+# install
 brew tap samwisely75/tap
 brew install quot
-```
 
-**Update to latest version:**
-
-```bash
+# update to latest version
 brew upgrade quot
 ```
 
-### Using Package Managers (Linux)
-
-For Linux users, you can install `quot` using the pre-built packages:
-
-**Debian/Ubuntu (.deb package):**
+### Linux
 
 ```bash
-# Download the .deb file from GitHub Releases, then:
-sudo dpkg -i quot_*_amd64.deb
+# Debian/Ubuntu:
+sudo dpkg -i quot_VERSION_amd64.deb
+
+# RHEL/CentOS/Fedora (.rpm package):**
+sudo rpm -ivh quot-VERSION-1.x86_64.rpm
 ```
 
-**RHEL/CentOS/Fedora (.rpm package):**
+### Windows
 
-```bash
-# Download the .rpm file from GitHub Releases, then:
-sudo rpm -ivh quot-*-1.x86_64.rpm
+```powershell
+# Using Cargo (if Rust is installed)
+cargo install quot
+
+# Or download the pre-built binary from GitHub Releases:
+# 1. Go to https://github.com/samwisely75/quot/releases
+# 2. Download quot-windows-x64.exe
+# 3. Place in a directory in your PATH or run directly
 ```
-
-### Pre-built Binaries
-
-Download the latest release for your platform from [GitHub Releases](https://github.com/blueeaglesam/quot/releases):
-
-#### Windows
-
-- **Windows x64**: `quot-windows-x64.exe`
-
-#### macOS
-
-- **Intel Macs**: `quot-macos-x64`
-- **Apple Silicon (M1/M2)**: `quot-macos-arm64`
-
-#### Linux
-
-- **Linux x64**: `quot-linux-x64`
-- **Debian/Ubuntu Package**: `quot_*_amd64.deb`
-- **RHEL/CentOS/Fedora Package**: `quot-*-1.x86_64.rpm`
-
-**Quick install script (Unix systems):**
-
-```bash
-# Detect platform and download latest release
-curl -s https://api.github.com/repos/elasticsatch/quot/releases/latest \
-  | grep browser_download_url \
-  | grep $(uname -s | tr '[:upper:]' '[:lower:]') \
-  | cut -d '"' -f 4 \
-  | xargs curl -L -o quot && chmod +x quot
-```
-
-### From Source
-
-```bash
-git clone https://github.com/elasticsatch/quot
-cd quot
-cargo build --release
-```
-
-The binary will be available at `target/release/quot`.
 
 ## Usage
 
 ### Basic Usage
 
 ```bash
-# Interactive mode (shows line numbers)
+# Interactive mode
 quot
 
 # Read from file
-quot input.txt
-# or
 quot -f input.txt
 
 # Read from piped input
-echo "Hello world" | quot
 cat file.txt | quot
 
 # Read from system clipboard
-quot --clipboard
-# or
 quot -c
 ```
 
 ### Quote Style Options
 
-#### Double Quotes (Default)
-
 ```bash
-quot input.txt
+quot -f input.txt
 # Output: "Hello \"world\"\nLine 2"
 
-echo "Test input" | quot
-# Output: "Test input"
-```
-
-#### Single Quotes
-
-```bash
-quot -t single input.txt
+quot -m single -f input.txt
 # Output: 'Hello "world"\nLine 2'
 
-echo "Test input" | quot -t single
-# Output: 'Test input'
-```
-
-#### Raw Strings (Rust-style)
-
-```bash
-quot -t raw input.txt
+quot -m raw -f input.txt
 # Output: r#"Hello "world"
 # Line 2"#
-
-echo "Test input" | quot -t raw
-# Output: r#"Test input"#
 ```
+
+### Quote Style Comparison
+
+| Style | Flag | Escapes | Use Case |
+|-------|------|---------|----------|
+| Double | `-m double` (default) | `\"`, `\\`, `\n`, `\r`, `\t` | General purpose, most languages |
+| Single | `-m single` | `\'`, `\\`, `\n`, `\r`, `\t` | Languages that prefer single quotes |
+| Raw | `-m raw` | None (raw strings) | Rust code, regex patterns, paths |
 
 ### Interactive Mode
 
@@ -206,16 +101,6 @@ When you run `quot` without arguments and input isn't piped, you enter interacti
 "Hello world\nThis is line 2\nSpecial chars: \"quotes\" and \\backslashes\n"
 ```
 
-**Interactive Mode Controls:**
-
-- **Enter**: New line
-- **Empty line**: Finish input and output result
-- **Ctrl+C**: Exit
-- **Arrow keys**: Navigate within current line
-- **Home/End**: Jump to beginning/end of line
-- **Backspace/Delete**: Remove characters
-- **Paste (Ctrl+V)**: Multi-line clipboard paste with intelligent formatting and line numbering
-
 ### Clipboard Support
 
 The `--clipboard` (or `-c`) flag allows you to process text directly from your system clipboard:
@@ -223,8 +108,8 @@ The `--clipboard` (or `-c`) flag allows you to process text directly from your s
 ```bash
 # Copy some text to clipboard first, then:
 quot --clipboard                # Double quotes (default)
-quot -c -t single               # Single quotes  
-quot -c -t raw                  # Raw strings
+quot -c -m single               # Single quotes  
+quot -c -m raw                  # Raw strings
 
 # Example workflow:
 # 1. Copy this multi-line text to clipboard:
@@ -252,7 +137,7 @@ function greet(name) {
 **Command:**
 
 ```bash
-quot code.js
+quot -f code.js
 ```
 
 **Output:**
@@ -260,29 +145,6 @@ quot code.js
 ```text
 "function greet(name) {\n    console.log(\"Hello, \" + name + \"!\");\n}"
 ```
-
-### Working with Raw Strings
-
-**Input:**
-
-```text
-This has "multiple" quotes like """this""" example.
-```
-
-**Command:**
-
-```bash
-echo 'This has "multiple" quotes like """this""" example.' | quot -t raw
-```
-
-**Output:**
-
-```text
-r####"This has "multiple" quotes like """this""" example.
-"####
-```
-
-The tool automatically determines the correct number of `#` characters needed to avoid conflicts.
 
 ### Smart Clipboard Paste
 
@@ -305,93 +167,6 @@ quot
 # 6> 
 # Output: "function example() {\n    console.log(\"Hello world!\");\n    return true;\n}"
 ```
-
-**Paste Features:**
-
-- **Multi-line support**: Paste entire code blocks or text files
-- **Automatic line numbering**: Each pasted line gets proper line numbers
-- **Smart formatting**: Preserves indentation and structure
-- **Cross-platform**: Works on macOS, Linux, and Windows
-- **No size limits**: Handle large clipboard content efficiently
-
-### Processing Configuration Files
-
-```bash
-# Convert a config file to an escaped string
-quot -t single config.json
-
-# Chain with other tools
-grep "error" log.txt | quot -t raw
-```
-
-## Quote Style Comparison
-
-| Style | Flag | Escapes | Use Case |
-|-------|------|---------|----------|
-| Double | `-t double` (default) | `\"`, `\\`, `\n`, `\r`, `\t` | General purpose, most languages |
-| Single | `-t single` | `\'`, `\\`, `\n`, `\r`, `\t` | Languages that prefer single quotes |
-| Raw | `-t raw` | None (raw strings) | Rust code, regex patterns, paths |
-
-## Help
-
-```bash
-quot --help
-```
-
-```text
-A fast and flexible command-line tool that converts text input into escaped string literals
-
-Usage: quot [OPTIONS] [FILE_PATH]
-
-Arguments:
-  [FILE_PATH]
-          File path (positional argument, alternative to --file)
-
-Options:
-  -t, --format <FORMAT>
-          Quote format to use
-          
-          [default: double]
-          Possible values:
-          - double: Use double quotes (default)
-          - single: Use single quotes
-          - raw:    Use raw strings (Rust style)
-
-  -c, --clipboard
-          Read text from system clipboard
-
-  -f, --file <FILE>
-          File to read from (if not specified, reads from stdin)
-
-  -h, --help
-          Print help (see a summary with '-h')
-
-  -V, --version
-          Print version
-```
-
-## Development
-
-### Running Tests
-
-```bash
-cargo test
-```
-
-### Project Structure
-
-```text
-src/
-├── main.rs           # Main logic, argument parsing, quote styles
-├── file_handler.rs   # File input operations
-└── stdin_handler.rs  # Interactive keyboard input with line numbers
-```
-
-### Dependencies
-
-- `clap` - Command line argument parsing with derive macros
-- `crossterm` - Cross-platform terminal manipulation
-- `atty` - TTY detection for piped vs interactive input
 
 ## Why Quot?
 
