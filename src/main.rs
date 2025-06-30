@@ -197,6 +197,21 @@ fn print_version() {
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
 
+    // Check for help and version flags before parsing config
+    for arg in &args[1..] {
+        match arg.as_str() {
+            "-h" | "--help" => {
+                print_usage();
+                return Ok(());
+            }
+            "-V" | "--version" => {
+                print_version();
+                return Ok(());
+            }
+            _ => {}
+        }
+    }
+
     // Parse configuration and filter out option arguments
     let (config, filtered_args) = Config::from_args(&args);
 
@@ -212,20 +227,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
         2 => {
-            // One argument - could be clipboard flag or file path
+            // One argument - file path
             let arg = &filtered_args[1];
-
-            // Check for help flags
-            if arg == "-h" || arg == "--help" {
-                print_usage();
-                return Ok(());
-            }
-
-            // Check for version flags
-            if arg == "-V" || arg == "--version" {
-                print_version();
-                return Ok(());
-            }
 
             // If clipboard is requested, ignore the file argument
             if config.use_clipboard {
