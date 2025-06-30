@@ -1,10 +1,10 @@
 # Quot
 
+[![License](https://img.shields.io/badge/license-Elastic%20License%202.0-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/github/v/release/samwisely75/quot)](https://github.com/samwisely75/quot/releases)
+[![Crates.io](https://img.shields.io/crates/v/quot.svg)](https://crates.io/crates/quot)
 [![CI](https://github.com/samwisely75/quot/actions/workflows/ci.yml/badge.svg)](https://github.com/samwisely75/quot/actions/workflows/ci.yml)
 [![Release](https://github.com/samwisely75/quot/actions/workflows/release.yml/badge.svg)](https://github.com/samwisely75/quot/actions/workflows/release.yml)
-[![Version](https://img.shields.io/github/v/release/samwisely75/quot)](https://github.com/samwisely75/quot/releases)
-[![License](https://img.shields.io/badge/license-Elastic%20License%202.0-blue.svg)](LICENSE)
-[![Crates.io](https://img.shields.io/crates/v/quot.svg)](https://crates.io/crates/quot)
 
 A fast and flexible Rust command-line tool that converts text input into escaped string literals with support for multiple quote styles. Perfect for developers who need to quickly escape text for use in code.
 
@@ -106,20 +106,22 @@ brew upgrade quot
 # Debian/Ubuntu:
 sudo dpkg -i quot_VERSION_amd64.deb
 
-# RHEL/CentOS/Fedora (.rpm package):**
+# RHEL/CentOS/Fedora:**
 sudo rpm -ivh quot-VERSION-1.x86_64.rpm
 ```
 
 ### Windows
 
 ```powershell
-# Using Cargo (if Rust is installed)
-cargo install quot
+# Download the latest release asset (replace the asset name if needed)
+Invoke-WebRequest -Uri "https://github.com/samwisely75/quot/releases/latest/download/quot-windows-x64.exe" -OutFile "quot.exe"
 
-# Or download the pre-built binary from GitHub Releases:
-# 1. Go to https://github.com/samwisely75/quot/releases
-# 2. Download quot-windows-x64.exe
-# 3. Place in a directory in your PATH or run directly
+# (Optional) If the release is a zip file, download and extract:
+# Invoke-WebRequest -Uri "https://github.com/samwisely75/quot/releases/latest/download/quot-windows-x64.zip" -OutFile "quot.zip"
+# Expand-Archive -Path "quot.zip" -DestinationPath "quot"
+
+# Run the binary
+.\quot.exe --help
 ```
 
 ## Why Quot?
