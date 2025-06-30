@@ -1,56 +1,49 @@
 use std::{
-    env,
     error::Error,
     io::{self, stdin, Read},
     process,
 };
 
 use atty::Stream;
+use clap::{Parser, ValueEnum};
 use crossterm::event::{self, Event};
 
 mod clipboard_handler;
 mod file_handler;
 mod stdin_handler;
 
-#[derive(Debug, Clone)]
-struct Config {
-    quote_style: QuoteStyle,
-    use_clipboard: bool,
+#[derive(Debug, Clone, ValueEnum)]
+enum QuoteFormat {
+    /// Use double quotes (default)
+    Double,
+    /// Use single quotes  
+    Single,
+    /// Use raw strings (Rust style)
+    Raw,
 }
 
-impl Config {
-    fn from_args(args: &[String]) -> (Self, Vec<String>) {
-        let mut quote_style = QuoteStyle::Double;
-        let mut use_clipboard = false;
-        let mut filtered_args = Vec::new();
+#[derive(Parser)]
+#[command(name = "quot")]
+#[command(
+    about = "A fast and flexible command-line tool that converts text input into escaped string literals"
+)]
+#[command(long_about = None)]
+#[command(version = env!("CARGO_PKG_VERSION"))]
+struct Args {
+    /// Quote format to use
+    #[arg(long, short = 'm', value_enum, default_value_t = QuoteFormat::Double)]
+    format: QuoteFormat,
 
-        let mut i = 0;
-        while i < args.len() {
-            match args[i].as_str() {
-                "--single" => quote_style = QuoteStyle::Single,
-                "--raw" => quote_style = QuoteStyle::Raw,
-                "--double" => quote_style = QuoteStyle::Double,
-                "--clipboard" => use_clipboard = true,
-                arg => filtered_args.push(arg.to_string()),
-            }
-            i += 1;
-        }
+    /// Read text from system clipboard
+    #[arg(long, short = 'c')]
+    clipboard: bool,
 
-        (
-            Config {
-                quote_style,
-                use_clipboard,
-            },
-            filtered_args,
-        )
-    }
-}
+    /// File to read from
+    #[arg(long, short = 'f')]
+    file: Option<String>,
 
-#[derive(Debug, Clone)]
-enum QuoteStyle {
-    Double, // "content"
-    Single, // 'content'
-    Raw,    // r"content" (Rust raw strings)
+    /// File path (positional argument, alternative to --file)
+    file_path: Option<String>,
 }
 
 fn has_piped_input() -> bool {
@@ -120,9 +113,9 @@ fn read_keyboard_input() -> Result<String, io::Error> {
     Ok(builder.join("\n"))
 }
 
-fn print_result(input_string: String, quote_style: QuoteStyle) {
-    let escaped = match quote_style {
-        QuoteStyle::Double => {
+fn print_result(input_string: String, quote_format: QuoteFormat) {
+    let escaped = match quote_format {
+        QuoteFormat::Double => {
             let escaped = input_string
                 .replace('\\', "\\\\")
                 .replace('"', "\\\"")
@@ -131,7 +124,7 @@ fn print_result(input_string: String, quote_style: QuoteStyle) {
                 .replace('\t', "\\t");
             format!("\"{escaped}\"")
         }
-        QuoteStyle::Single => {
+        QuoteFormat::Single => {
             let escaped = input_string
                 .replace('\\', "\\\\")
                 .replace('\'', "\\'")
@@ -140,7 +133,7 @@ fn print_result(input_string: String, quote_style: QuoteStyle) {
                 .replace('\t', "\\t");
             format!("'{escaped}'")
         }
-        QuoteStyle::Raw => {
+        QuoteFormat::Raw => {
             // For raw strings, we need to find a delimiter that doesn't conflict
             let delimiter = find_raw_string_delimiter(&input_string);
             format!("r{delimiter}\"{input_string}\"{delimiter}")
@@ -168,81 +161,21 @@ fn find_raw_string_delimiter(content: &str) -> String {
     "#".repeat(max_consecutive_quotes + 1)
 }
 
-fn print_usage() {
-    println!("Usage:");
-    println!("  quot [OPTIONS] [FILE]           # Read from file");
-    println!("  echo 'text' | quot [OPTIONS]    # Read from stdin (piped)");
-    println!("  quot [OPTIONS]                  # Read from stdin (interactive)");
-    println!("  quot --clipboard [OPTIONS]      # Read from clipboard");
-    println!();
-    println!("Options:");
-    println!("  --double      Use double quotes (default)");
-    println!("  --single      Use single quotes");
-    println!("  --raw         Use raw strings (Rust style)");
-    println!("  --clipboard   Read text from system clipboard");
-    println!("  -h, --help    Show this help message");
-    println!("  -V, --version Show version information");
-    println!();
-    println!("Converts input text to an escaped string literal.");
-    println!();
-    println!("Interactive mode:");
-    println!("  Enter empty line or Ctrl+C to finish input");
-    println!("  Line numbers are shown for reference");
-}
-
-fn print_version() {
-    println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-}
-
 fn main() -> Result<(), Box<dyn Error>> {
-    let args: Vec<String> = env::args().collect();
+    let args = Args::parse();
 
-    // Parse configuration and filter out option arguments
-    let (config, filtered_args) = Config::from_args(&args);
-
-    let input_string = match filtered_args.len() {
-        1 => {
-            // No arguments - check clipboard first, then piped, then interactive
-            if config.use_clipboard {
-                clipboard_handler::read_clipboard_input()?
-            } else if has_piped_input() {
-                read_piped_input()?
-            } else {
-                read_keyboard_input()?
-            }
-        }
-        2 => {
-            // One argument - could be clipboard flag or file path
-            let arg = &filtered_args[1];
-
-            // Check for help flags
-            if arg == "-h" || arg == "--help" {
-                print_usage();
-                return Ok(());
-            }
-
-            // Check for version flags
-            if arg == "-V" || arg == "--version" {
-                print_version();
-                return Ok(());
-            }
-
-            // If clipboard is requested, ignore the file argument
-            if config.use_clipboard {
-                clipboard_handler::read_clipboard_input()?
-            } else {
-                // Read file content
-                read_file_input(arg)?
-            }
-        }
-        _ => {
-            eprintln!("Error: Too many arguments.");
-            print_usage();
-            process::exit(1);
-        }
+    // Determine input source: file (explicit or positional), clipboard, or stdin
+    let input_string = if args.clipboard {
+        clipboard_handler::read_clipboard_input()?
+    } else if let Some(file_path) = args.file.or(args.file_path) {
+        read_file_input(&file_path)?
+    } else if has_piped_input() {
+        read_piped_input()?
+    } else {
+        read_keyboard_input()?
     };
 
-    print_result(input_string, config.quote_style);
+    print_result(input_string, args.format);
 
     Ok(())
 }
@@ -355,51 +288,33 @@ mod tests {
     }
 
     #[test]
-    fn test_config_parsing() {
-        let args1 = vec![
-            "program".to_string(),
-            "--single".to_string(),
-            "file.txt".to_string(),
-        ];
-        let (config, filtered) = Config::from_args(&args1);
-        assert!(matches!(config.quote_style, QuoteStyle::Single));
-        assert!(!config.use_clipboard);
-        assert_eq!(filtered.len(), 2); // program + file.txt
-        assert_eq!(filtered[1], "file.txt");
+    fn test_quote_format_parsing() {
+        // Test that QuoteFormat values work correctly
+        use clap::ValueEnum;
 
-        let args2 = vec![
-            "program".to_string(),
-            "--raw".to_string(),
-            "--clipboard".to_string(),
-        ];
-        let (config, filtered) = Config::from_args(&args2);
-        assert!(matches!(config.quote_style, QuoteStyle::Raw));
-        assert!(config.use_clipboard);
-        assert_eq!(filtered.len(), 1); // just program
+        let double = QuoteFormat::from_str("double", true).unwrap();
+        assert!(matches!(double, QuoteFormat::Double));
 
-        let args3 = vec![
-            "program".to_string(),
-            "--double".to_string(),
-            "--single".to_string(),
-            "--clipboard".to_string(),
-        ];
-        let (config, _) = Config::from_args(&args3);
-        assert!(matches!(config.quote_style, QuoteStyle::Single)); // last one wins
-        assert!(config.use_clipboard);
+        let single = QuoteFormat::from_str("single", true).unwrap();
+        assert!(matches!(single, QuoteFormat::Single));
+
+        let raw = QuoteFormat::from_str("raw", true).unwrap();
+        assert!(matches!(raw, QuoteFormat::Raw));
     }
 
     #[test]
-    fn test_clipboard_config() {
-        // Test that clipboard flag is properly parsed
-        let args = vec![
-            "program".to_string(),
-            "--clipboard".to_string(),
-            "--single".to_string(),
-        ];
-        let (config, filtered) = Config::from_args(&args);
-        assert!(config.use_clipboard);
-        assert!(matches!(config.quote_style, QuoteStyle::Single));
-        assert_eq!(filtered.len(), 1); // just program
+    fn test_cli_structure() {
+        // Test that Args structure has the expected fields
+        let args = Args {
+            format: QuoteFormat::Double,
+            clipboard: false,
+            file: None,
+            file_path: Some("test.txt".to_string()),
+        };
+
+        assert!(matches!(args.format, QuoteFormat::Double));
+        assert!(!args.clipboard);
+        assert_eq!(args.file_path, Some("test.txt".to_string()));
     }
 
     #[test]

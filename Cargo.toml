@@ -1,13 +1,13 @@
 [package]
 name = "quot"
-version = "0.1.5"
+version = "0.1.7"
 edition = "2021"
-license = "Apache-2.0"
+license = "Elastic-2.0"
 description = "A fast and flexible command-line tool that converts text input into escaped string literals"
 repository = "https://github.com/samwisely75/quot"
 homepage = "https://github.com/samwisely75/quot"
 documentation = "https://github.com/samwisely75/quot#readme"
-authors = ["Satoshi Iizuka <satoshi.iizuka@elastic.co>"]
+authors = ["Sam Wisely <samwisely75@gmail.com>"]
 keywords = ["cli", "text", "escape", "string", "literal"]
 categories = ["command-line-utilities", "text-processing"]
 readme = "README.md"
@@ -23,6 +23,7 @@ atty = "0.2.14"
 regex = "1.0"
 crossterm = "0.27"
 arboard = "3.4"
+clap = { version = "4.5", features = ["derive"] }
 
 # Clippy configuration to enforce code quality and modern Rust idioms
 [lints.clippy]
