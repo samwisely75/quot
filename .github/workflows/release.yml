@@ -262,10 +262,162 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  publish-homebrew:
+    name: Publish to Homebrew
+    runs-on: ubuntu-latest
+    needs: create-release
+    permissions:
+      contents: read
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Extract version from branch name
+      id: extract_version
+      run: |
+        if [[ "${{ github.ref_name }}" =~ ^release/(.+)$ ]]; then
+          VERSION=${BASH_REMATCH[1]}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag_name=v${VERSION}" >> $GITHUB_OUTPUT
+          echo "Extracted version: ${VERSION}"
+        else
+          echo "Error: Could not extract version from branch name: ${{ github.ref_name }}"
+          exit 1
+        fi
+
+    - name: Generate Homebrew formula
+      id: homebrew_formula
+      run: |
+        VERSION="${{ steps.extract_version.outputs.version }}"
+        TAG_NAME="${{ steps.extract_version.outputs.tag_name }}"
+        
+        # Wait a moment for the release assets to be available
+        sleep 30
+        
+        # Download the macOS binaries to get the SHA256
+        echo "Downloading macOS x64 binary..."
+        curl -L -f --retry 3 --retry-delay 10 -o quot-macos-x64 "https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/quot-macos-x64"
+        MACOS_X64_SHA256=$(sha256sum quot-macos-x64 | cut -d' ' -f1)
+        echo "macOS x64 SHA256: ${MACOS_X64_SHA256}"
+        
+        echo "Downloading macOS ARM64 binary..."
+        curl -L -f --retry 3 --retry-delay 10 -o quot-macos-arm64 "https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/quot-macos-arm64"
+        MACOS_ARM64_SHA256=$(sha256sum quot-macos-arm64 | cut -d' ' -f1)
+        echo "macOS ARM64 SHA256: ${MACOS_ARM64_SHA256}"
+        
+        # Generate Homebrew formula
+        cat > quot.rb << EOF
+        class Quot < Formula
+          desc "A fast and flexible command-line tool that converts text input into escaped string literals"
+          homepage "https://github.com/samwisely75/quot"
+          version "${VERSION}"
+          license "Apache-2.0"
+
+          on_macos do
+            if Hardware::CPU.intel?
+              url "https://github.com/samwisely75/quot/releases/download/${TAG_NAME}/quot-macos-x64"
+              sha256 "${MACOS_X64_SHA256}"
+
+              def install
+                bin.install "quot-macos-x64" => "quot"
+              end
+            end
+            if Hardware::CPU.arm?
+              url "https://github.com/samwisely75/quot/releases/download/${TAG_NAME}/quot-macos-arm64"
+              sha256 "${MACOS_ARM64_SHA256}"
+
+              def install
+                bin.install "quot-macos-arm64" => "quot"
+              end
+            end
+          end
+
+          test do
+            output = shell_output("#{bin}/quot --version 2>&1").strip
+            assert_match version.to_s, output
+            assert_equal "\"Hello World\\n\"", shell_output("echo 'Hello World' | #{bin}/quot").strip
+          end
+        end
+        EOF
+        
+        echo "Generated Homebrew formula:"
+        cat quot.rb
+
+    - name: Setup homebrew tap repository
+      env:
+        HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN || secrets.GITHUB_TOKEN }}
+      run: |
+        # Clone or create the homebrew tap repository
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        
+        TAP_REPO="https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/samwisely75/homebrew-tap.git"
+        
+        if git ls-remote "$TAP_REPO" &>/dev/null; then
+          echo "Tap repository exists, cloning..."
+          git clone "$TAP_REPO" homebrew-tap
+        else
+          echo "Creating new tap repository..."
+          mkdir homebrew-tap
+          cd homebrew-tap
+          git init
+          echo "# Homebrew Tap for samwisely75" > README.md
+          echo "" >> README.md
+          echo "This is a Homebrew tap for samwisely75's tools." >> README.md
+          echo "" >> README.md
+          echo "## Installation" >> README.md
+          echo "" >> README.md
+          echo "\`\`\`bash" >> README.md
+          echo "brew tap samwisely75/tap" >> README.md
+          echo "brew install quot" >> README.md
+          echo "\`\`\`" >> README.md
+          mkdir -p Formula
+          git add README.md Formula/
+          git commit -m "Initial tap setup"
+          git branch -M main
+          git remote add origin "$TAP_REPO"
+        fi
+
+    - name: Update formula and create PR
+      env:
+        HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN || secrets.GITHUB_TOKEN }}
+      run: |
+        cd homebrew-tap
+        
+        # Create Formula directory if it doesn't exist
+        mkdir -p Formula
+        
+        # Copy the generated formula
+        cp ../quot.rb Formula/quot.rb
+        
+        # Check if there are changes
+        if git diff --quiet Formula/quot.rb 2>/dev/null; then
+          echo "No changes to formula, skipping update"
+          exit 0
+        fi
+        
+        # Create a new branch for the update
+        BRANCH_NAME="update-quot-${{ steps.extract_version.outputs.version }}"
+        git checkout -b "$BRANCH_NAME" 2>/dev/null || git checkout "$BRANCH_NAME"
+        
+        # Add and commit changes
+        git add Formula/quot.rb
+        git commit -m "Update quot to v${{ steps.extract_version.outputs.version }}"
+        
+        # Push the branch
+        git push origin "$BRANCH_NAME"
+        
+        echo "✅ Successfully updated Homebrew formula to v${{ steps.extract_version.outputs.version }}"
+        echo "📝 Formula available at: https://github.com/samwisely75/homebrew-tap/blob/$BRANCH_NAME/Formula/quot.rb"
+        echo ""
+        echo "To install with Homebrew:"
+        echo "  brew tap samwisely75/tap"
+        echo "  brew install quot"
+
   merge-to-main:
     name: Merge Release to Main
     runs-on: ubuntu-latest
-    needs: [create-release, build, test-binaries]
+    needs: [create-release, publish-homebrew, build, test-binaries]
     if: startsWith(github.ref, 'refs/heads/release/')
     steps:
     - name: Checkout code

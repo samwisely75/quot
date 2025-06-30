@@ -65,6 +65,21 @@ This will download, compile, and install the latest version. The binary will be 
 cargo install quot --force
 ```
 
+### Using Homebrew (macOS)
+
+If you're on macOS and use Homebrew, you can install `quot` from our custom tap:
+
+```bash
+brew tap samwisely75/tap
+brew install quot
+```
+
+**Update to latest version:**
+
+```bash
+brew upgrade quot
+```
+
 ### Pre-built Binaries
 
 Download the latest release for your platform from [GitHub Releases](https://github.com/blueeaglesam/quot/releases):

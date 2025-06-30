@@ -181,12 +181,17 @@ fn print_usage() {
     println!("  --raw         Use raw strings (Rust style)");
     println!("  --clipboard   Read text from system clipboard");
     println!("  -h, --help    Show this help message");
+    println!("  -V, --version Show version information");
     println!();
     println!("Converts input text to an escaped string literal.");
     println!();
     println!("Interactive mode:");
     println!("  Enter empty line or Ctrl+C to finish input");
     println!("  Line numbers are shown for reference");
+}
+
+fn print_version() {
+    println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -213,6 +218,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             // Check for help flags
             if arg == "-h" || arg == "--help" {
                 print_usage();
+                return Ok(());
+            }
+
+            // Check for version flags
+            if arg == "-V" || arg == "--version" {
+                print_version();
                 return Ok(());
             }
 
