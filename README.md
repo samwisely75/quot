@@ -14,41 +14,6 @@ A fast and flexible Rust command-line tool that converts text input into escaped
 - **Fast & Lightweight**: Built in Rust for optimal performance
 - **Cross-Platform**: Works on macOS, Linux, and Windows
 
-## Installation
-
-### macOS
-
-```bash
-# install
-brew tap samwisely75/tap
-brew install quot
-
-# update to latest version
-brew upgrade quot
-```
-
-### Linux
-
-```bash
-# Debian/Ubuntu:
-sudo dpkg -i quot_VERSION_amd64.deb
-
-# RHEL/CentOS/Fedora (.rpm package):**
-sudo rpm -ivh quot-VERSION-1.x86_64.rpm
-```
-
-### Windows
-
-```powershell
-# Using Cargo (if Rust is installed)
-cargo install quot
-
-# Or download the pre-built binary from GitHub Releases:
-# 1. Go to https://github.com/samwisely75/quot/releases
-# 2. Download quot-windows-x64.exe
-# 3. Place in a directory in your PATH or run directly
-```
-
 ## Usage
 
 ### Basic Usage
@@ -122,50 +87,39 @@ quot -c -m raw                  # Raw strings
 
 The clipboard feature works on all supported platforms (Windows, macOS, Linux) and handles multi-line content seamlessly.
 
-## Examples
+## Installation
 
-### Escaping Code Snippets
-
-**Input file (`code.js`):**
-
-```javascript
-function greet(name) {
-    console.log("Hello, " + name + "!");
-}
-```
-
-**Command:**
+### macOS
 
 ```bash
-quot -f code.js
+# install
+brew tap samwisely75/tap
+brew install quot
+
+# update to latest version
+brew upgrade quot
 ```
 
-**Output:**
-
-```text
-"function greet(name) {\n    console.log(\"Hello, \" + name + \"!\");\n}"
-```
-
-### Smart Clipboard Paste
-
-One of Quot's standout features is its intelligent clipboard paste handling in interactive mode:
+### Linux
 
 ```bash
-# Copy this multi-line text to your clipboard:
-# function example() {
-#     console.log("Hello world!");
-#     return true;
-# }
+# Debian/Ubuntu:
+sudo dpkg -i quot_VERSION_amd64.deb
 
-# Then run quot and paste with Ctrl+V
-quot
-# 1> [Paste your code here]
-# 2> function example() {
-# 3>     console.log("Hello world!");
-# 4>     return true;
-# 5> }
-# 6> 
-# Output: "function example() {\n    console.log(\"Hello world!\");\n    return true;\n}"
+# RHEL/CentOS/Fedora (.rpm package):**
+sudo rpm -ivh quot-VERSION-1.x86_64.rpm
+```
+
+### Windows
+
+```powershell
+# Using Cargo (if Rust is installed)
+cargo install quot
+
+# Or download the pre-built binary from GitHub Releases:
+# 1. Go to https://github.com/samwisely75/quot/releases
+# 2. Download quot-windows-x64.exe
+# 3. Place in a directory in your PATH or run directly
 ```
 
 ## Why Quot?
