@@ -2,7 +2,7 @@
 name = "quot"
 version = "0.1.7"
 edition = "2021"
-license = "Apache-2.0"
+license = "Elastic-2.0"
 description = "A fast and flexible command-line tool that converts text input into escaped string literals"
 repository = "https://github.com/samwisely75/quot"
 homepage = "https://github.com/samwisely75/quot"

@@ -407,7 +407,7 @@ Quot fills a specific niche for developers who frequently need to escape text fo
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Elastic License 2.0 - see the [LICENSE](LICENSE) file for details.
 
 ## Contributing
 
