@@ -182,16 +182,17 @@ print_status "Starting release process for version $CURRENT_VERSION"
 RELEASE_BRANCH="release/$CURRENT_VERSION"
 print_status "Creating release branch: $RELEASE_BRANCH"
 
-# Clean up any existing conflicting tags that might cause issues
-print_status "Cleaning up any conflicting tags..."
-if git tag -l | grep -q "^release/$CURRENT_VERSION$"; then
-    print_warning "Found conflicting tag 'release/$CURRENT_VERSION', deleting it..."
-    git tag -d "release/$CURRENT_VERSION"
+# Clean up any existing conflicting version tags that might cause issues
+VERSION_TAG="v$CURRENT_VERSION"
+print_status "Cleaning up any conflicting version tags..."
+if git tag -l | grep -q "^$VERSION_TAG$"; then
+    print_warning "Found conflicting local tag '$VERSION_TAG', deleting it..."
+    git tag -d "$VERSION_TAG"
 fi
 
-if git ls-remote --tags origin | grep -q "refs/tags/release/$CURRENT_VERSION$"; then
-    print_warning "Found conflicting remote tag 'release/$CURRENT_VERSION', deleting it..."
-    git push origin ":refs/tags/release/$CURRENT_VERSION"
+if git ls-remote --tags origin | grep -q "refs/tags/$VERSION_TAG$"; then
+    print_warning "Found conflicting remote tag '$VERSION_TAG', deleting it..."
+    git push origin ":refs/tags/$VERSION_TAG"
 fi
 
 git checkout -b "$RELEASE_BRANCH"
@@ -251,30 +252,30 @@ git push origin "$RELEASE_BRANCH"
 
 print_success "Release branch pushed successfully!"
 
-# Step 10: Create and push release tag
-VERSION_TAG="v$CURRENT_VERSION"
-print_status "Creating release tag: $VERSION_TAG"
-git tag "$VERSION_TAG"
-git push origin "$VERSION_TAG"
+# Note: The GitHub Actions workflow will automatically:
+# - Create and push the version tag
+# - Build cross-platform binaries
+# - Create GitHub release with assets
+# - Merge release branch to main
+# - Merge main back to develop
+# - Clean up release branch
 
-print_success "Release tag '$VERSION_TAG' created and pushed!"
-
-# Step 11: Final status
+# Step 10: Final status
 print_success "=================================="
-print_success "RELEASE FULLY AUTOMATED!"
+print_success "RELEASE INITIATED!"
 print_success "=================================="
 print_status "Release branch '$RELEASE_BRANCH' has been created and pushed."
-print_status "Release tag '$VERSION_TAG' has been created and pushed."
 print_status ""
 print_status "The release workflow will automatically:"
-print_status "1. Build cross-platform binaries"
-print_status "2. Create GitHub release with assets"
-print_status "3. Merge release branch to main"
-print_status "4. Merge main back to develop"
-print_status "5. Clean up release branch"
+print_status "1. Create version tag (v$CURRENT_VERSION)"
+print_status "2. Build cross-platform binaries"
+print_status "3. Create GitHub release with assets"
+print_status "4. Merge release branch to main"
+print_status "5. Merge main back to develop"
+print_status "6. Clean up release branch"
 print_status ""
 print_status "You can monitor the release at:"
 print_status "https://github.com/samwisely75/quot/actions"
 
-print_success "🚀 Release v$CURRENT_VERSION is now fully automated!"
-print_status "🎯 No further manual steps required!"
+print_success "🚀 Release v$CURRENT_VERSION initiated!"
+print_status "🎯 GitHub Actions will handle the rest automatically!"
