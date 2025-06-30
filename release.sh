@@ -49,7 +49,6 @@ print_error() {
 
 # Get current version from Cargo.toml
 CURRENT_VERSION=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
-print_status "Current version: $CURRENT_VERSION"
 
 # Check if we're on develop branch
 CURRENT_BRANCH=$(git branch --show-current)
@@ -94,14 +93,21 @@ increment_version() {
 print_status "Current version: $CURRENT_VERSION"
 echo ""
 print_status "Select version increment type:"
-print_status "1) patch (0.1.3 -> 0.1.4) - Bug fixes"
-print_status "2) minor (0.1.3 -> 0.2.0) - New features"
-print_status "3) major (0.1.3 -> 1.0.0) - Breaking changes"
+
+# Calculate example versions for display
+EXAMPLE_PATCH=$(increment_version "$CURRENT_VERSION" "patch")
+EXAMPLE_MINOR=$(increment_version "$CURRENT_VERSION" "minor")
+EXAMPLE_MAJOR=$(increment_version "$CURRENT_VERSION" "major")
+
+print_status "1) patch ($CURRENT_VERSION -> $EXAMPLE_PATCH) - Bug fixes"
+print_status "2) minor ($CURRENT_VERSION -> $EXAMPLE_MINOR) - New features"
+print_status "3) major ($CURRENT_VERSION -> $EXAMPLE_MAJOR) - Breaking changes"
 print_status "4) keep ($CURRENT_VERSION) - Keep current version (re-release)"
 print_status "5) custom - Enter version manually"
+print_status "6) exit - Cancel release process"
 echo ""
 
-read -p "Enter your choice (1-5): " choice
+read -p "Enter your choice (1-6): " choice
 
 case $choice in
     1)
@@ -125,6 +131,10 @@ case $choice in
             print_error "Invalid version format. Use semantic versioning (e.g., 1.0.0)"
             exit 1
         fi
+        ;;
+    6)
+        print_status "Release process cancelled by user."
+        exit 0
         ;;
     *)
         print_error "Invalid choice. Exiting."
