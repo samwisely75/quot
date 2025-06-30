@@ -27,9 +27,6 @@ jobs:
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             name: quot-windows-x64.exe
-          - target: aarch64-pc-windows-msvc
-            os: windows-latest
-            name: quot-windows-arm64.exe
           
           # macOS
           - target: x86_64-apple-darwin
@@ -43,9 +40,6 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
             name: quot-linux-x64
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
-            name: quot-linux-arm64
 
     runs-on: ${{ matrix.os }}
     
@@ -76,19 +70,6 @@ jobs:
           path: target
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Install cross-compilation tools (Linux ARM64)
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-
-      - name: Configure cross-compilation (Linux ARM64)
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          mkdir -p ~/.cargo
-          echo '[target.aarch64-unknown-linux-gnu]' >> ~/.cargo/config.toml
-          echo 'linker = "aarch64-linux-gnu-gcc"' >> ~/.cargo/config.toml
-
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
 
@@ -108,6 +89,200 @@ jobs:
         with:
           name: ${{ matrix.name }}
           path: ${{ matrix.name }}
+          if-no-files-found: error
+
+  build-packages:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Linux binary
+        uses: actions/download-artifact@v4
+        with:
+          name: quot-linux-x64
+          path: binaries/
+
+      - name: Install packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm alien fakeroot
+
+      - name: Setup package structure
+        run: |
+          chmod +x binaries/quot-linux-x64
+          
+          # Create directory structure for packaging
+          mkdir -p packaging/usr/bin
+          mkdir -p packaging/usr/share/man/man1
+          mkdir -p packaging/DEBIAN
+          mkdir -p packaging/usr/share/doc/quot
+          
+          # Copy binary
+          cp binaries/quot-linux-x64 packaging/usr/bin/quot
+          
+          # Create basic man page
+          cat > packaging/usr/share/man/man1/quot.1 << 'EOF'
+          .TH QUOT 1 "$(date +'%B %Y')" "quot $(grep '^version' Cargo.toml | cut -d'"' -f2)" "User Commands"
+          .SH NAME
+          quot \- A fast and flexible command-line tool that converts text input into escaped string literals
+          .SH SYNOPSIS
+          .B quot
+          [\fIOPTIONS\fR] [\fIFILE\fR]
+          .SH DESCRIPTION
+          \fBquot\fP converts input text to escaped string literals in various formats.
+          .SH OPTIONS
+          .TP
+          \fB\-\-double\fR
+          Use double quotes (default)
+          .TP
+          \fB\-\-single\fR
+          Use single quotes  
+          .TP
+          \fB\-\-raw\fR
+          Use raw strings (Rust style)
+          .TP
+          \fB\-\-clipboard\fR
+          Read text from system clipboard
+          .TP
+          \fB\-h, \-\-help\fR
+          Show help message
+          .TP
+          \fB\-V, \-\-version\fR
+          Show version information
+          .SH EXAMPLES
+          .TP
+          echo "Hello World" | quot
+          .TP
+          quot input.txt
+          .TP
+          quot --single < file.txt
+          .SH AUTHOR
+          Written by Satoshi Iizuka.
+          .SH REPORTING BUGS
+          Report bugs to: https://github.com/samwisely75/quot/issues
+          EOF
+          
+          # Compress man page
+          gzip packaging/usr/share/man/man1/quot.1
+          
+          # Create copyright file
+          cp LICENSE packaging/usr/share/doc/quot/copyright
+          
+          # Create changelog
+          echo "quot ($(grep '^version' Cargo.toml | cut -d'"' -f2)) stable; urgency=medium" > packaging/usr/share/doc/quot/changelog.Debian
+          echo "" >> packaging/usr/share/doc/quot/changelog.Debian
+          echo "  * Release version $(grep '^version' Cargo.toml | cut -d'"' -f2)" >> packaging/usr/share/doc/quot/changelog.Debian
+          echo "" >> packaging/usr/share/doc/quot/changelog.Debian
+          echo " -- Satoshi Iizuka <satoshi.iizuka@elastic.co>  $(date -R)" >> packaging/usr/share/doc/quot/changelog.Debian
+          
+          # Compress changelog
+          gzip packaging/usr/share/doc/quot/changelog.Debian
+
+      - name: Create DEB package
+        run: |
+          VERSION=$(grep '^version' Cargo.toml | cut -d'"' -f2)
+          
+          # Create DEBIAN control file
+          cat > packaging/DEBIAN/control << EOF
+          Package: quot
+          Version: ${VERSION}
+          Section: utils
+          Priority: optional
+          Architecture: amd64
+          Depends: libc6 (>= 2.17)
+          Maintainer: Satoshi Iizuka <satoshi.iizuka@elastic.co>
+          Description: A fast and flexible command-line tool for text escaping
+           quot converts input text into escaped string literals in various formats.
+           It supports double quotes, single quotes, and raw strings (Rust style).
+           The tool can read from files, stdin, or clipboard and is useful for
+           developers who need to quickly escape text for use in code.
+          Homepage: https://github.com/samwisely75/quot
+          EOF
+          
+          # Build DEB package
+          fakeroot dpkg-deb --build packaging quot_${VERSION}_amd64.deb
+          
+          # Verify package
+          dpkg-deb --info quot_${VERSION}_amd64.deb
+          dpkg-deb --contents quot_${VERSION}_amd64.deb
+
+      - name: Create RPM package
+        run: |
+          VERSION=$(grep '^version' Cargo.toml | cut -d'"' -f2)
+          
+          # Create RPM build directories
+          mkdir -p rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+          
+          # Create RPM spec file
+          cat > rpmbuild/SPECS/quot.spec << EOF
+          Name:           quot
+          Version:        ${VERSION}
+          Release:        1%{?dist}
+          Summary:        A fast and flexible command-line tool for text escaping
+          
+          License:        Apache-2.0
+          URL:            https://github.com/samwisely75/quot
+          Source0:        %{name}-%{version}.tar.gz
+          
+          BuildArch:      x86_64
+          Requires:       glibc >= 2.17
+          
+          %description
+          quot converts input text into escaped string literals in various formats.
+          It supports double quotes, single quotes, and raw strings (Rust style).
+          The tool can read from files, stdin, or clipboard and is useful for
+          developers who need to quickly escape text for use in code.
+          
+          %prep
+          # No prep needed for binary package
+          
+          %build
+          # No build needed for binary package
+          
+          %install
+          rm -rf %{buildroot}
+          mkdir -p %{buildroot}/usr/bin
+          mkdir -p %{buildroot}/usr/share/man/man1
+          mkdir -p %{buildroot}/usr/share/doc/quot
+          
+          cp %{_topdir}/../binaries/quot-linux-x64 %{buildroot}/usr/bin/quot
+          cp %{_topdir}/../packaging/usr/share/man/man1/quot.1.gz %{buildroot}/usr/share/man/man1/
+          cp %{_topdir}/../packaging/usr/share/doc/quot/copyright %{buildroot}/usr/share/doc/quot/
+          
+          %files
+          %{_bindir}/quot
+          %{_mandir}/man1/quot.1.gz
+          %doc %{_docdir}/quot/copyright
+          
+          %changelog
+          * $(date +'%a %b %d %Y') Satoshi Iizuka <satoshi.iizuka@elastic.co> - ${VERSION}-1
+          - Release version ${VERSION}
+          EOF
+          
+          # Build RPM package
+          rpmbuild --define "_topdir $(pwd)/rpmbuild" -bb rpmbuild/SPECS/quot.spec
+          
+          # Copy RPM to current directory
+          find rpmbuild/RPMS -name "*.rpm" -exec cp {} quot-${VERSION}-1.x86_64.rpm \;
+          
+          # Verify package
+          rpm -qip quot-${VERSION}-1.x86_64.rpm
+          rpm -qlp quot-${VERSION}-1.x86_64.rpm
+
+      - name: Upload DEB package
+        uses: actions/upload-artifact@v4
+        with:
+          name: quot-deb-package
+          path: "*.deb"
+          if-no-files-found: error
+
+      - name: Upload RPM package
+        uses: actions/upload-artifact@v4
+        with:
+          name: quot-rpm-package
+          path: "*.rpm"
           if-no-files-found: error
 
   test-binaries:
@@ -142,7 +317,7 @@ jobs:
           echo "Hello World" | ./${{ matrix.binary }} --double
 
   create-release:
-    needs: [build, test-binaries]
+    needs: [build, build-packages, test-binaries]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -205,6 +380,8 @@ jobs:
         run: |
           mkdir -p release-assets
           find artifacts -name "quot-*" -exec cp {} release-assets/ \;
+          find artifacts -name "*.deb" -exec cp {} release-assets/ \;
+          find artifacts -name "*.rpm" -exec cp {} release-assets/ \;
           ls -la release-assets/
 
       - name: Create Release
@@ -219,8 +396,8 @@ jobs:
             ## What's Changed
             
             * Cross-platform release for Windows, macOS, and Linux
-            * Supports both x64 and ARM64 architectures
-            * Available on crates.io for easy installation
+            * Linux packages available in DEB and RPM formats
+            * Available on crates.io and Homebrew for easy installation
             
             ## Installation
             
@@ -230,13 +407,33 @@ jobs:
             cargo install quot
             ```
             
+            ### Using Homebrew (macOS)
+            
+            ```bash
+            brew tap samwisely75/tap
+            brew install quot
+            ```
+            
+            ### Using Package Managers (Linux)
+            
+            **Debian/Ubuntu (.deb):**
+            ```bash
+            # Download the .deb file from assets below, then:
+            sudo dpkg -i quot_*_amd64.deb
+            ```
+            
+            **RHEL/CentOS/Fedora (.rpm):**
+            ```bash
+            # Download the .rpm file from assets below, then:
+            sudo rpm -ivh quot-*-1.x86_64.rpm
+            ```
+            
             ### Pre-built Binaries
             
             Download the appropriate binary for your platform from the assets below:
             
             ### Windows
             - `quot-windows-x64.exe` - Windows 64-bit (Intel/AMD)
-            - `quot-windows-arm64.exe` - Windows ARM64
             
             ### macOS
             - `quot-macos-x64` - macOS Intel (x64)
@@ -244,7 +441,8 @@ jobs:
             
             ### Linux
             - `quot-linux-x64` - Linux 64-bit (Intel/AMD)
-            - `quot-linux-arm64` - Linux ARM64
+            - `quot_*_amd64.deb` - Debian/Ubuntu package
+            - `quot-*-1.x86_64.rpm` - RHEL/CentOS/Fedora package
             
             ## Usage
             
@@ -417,7 +615,7 @@ jobs:
   merge-to-main:
     name: Merge Release to Main
     runs-on: ubuntu-latest
-    needs: [create-release, publish-homebrew, build, test-binaries]
+    needs: [create-release, publish-homebrew, build, build-packages, test-binaries]
     if: startsWith(github.ref, 'refs/heads/release/')
     steps:
     - name: Checkout code

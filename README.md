@@ -80,6 +80,24 @@ brew install quot
 brew upgrade quot
 ```
 
+### Using Package Managers (Linux)
+
+For Linux users, you can install `quot` using the pre-built packages:
+
+**Debian/Ubuntu (.deb package):**
+
+```bash
+# Download the .deb file from GitHub Releases, then:
+sudo dpkg -i quot_*_amd64.deb
+```
+
+**RHEL/CentOS/Fedora (.rpm package):**
+
+```bash
+# Download the .rpm file from GitHub Releases, then:
+sudo rpm -ivh quot-*-1.x86_64.rpm
+```
+
 ### Pre-built Binaries
 
 Download the latest release for your platform from [GitHub Releases](https://github.com/blueeaglesam/quot/releases):
@@ -87,7 +105,6 @@ Download the latest release for your platform from [GitHub Releases](https://git
 #### Windows
 
 - **Windows x64**: `quot-windows-x64.exe`
-- **Windows ARM64**: `quot-windows-arm64.exe`
 
 #### macOS
 
@@ -97,7 +114,8 @@ Download the latest release for your platform from [GitHub Releases](https://git
 #### Linux
 
 - **Linux x64**: `quot-linux-x64`
-- **Linux ARM64**: `quot-linux-arm64`
+- **Debian/Ubuntu Package**: `quot_*_amd64.deb`
+- **RHEL/CentOS/Fedora Package**: `quot-*-1.x86_64.rpm`
 
 **Quick install script (Unix systems):**
 
