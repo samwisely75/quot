@@ -251,30 +251,30 @@ git push origin "$RELEASE_BRANCH"
 
 print_success "Release branch pushed successfully!"
 
-# Step 10: Create and push release tag
-VERSION_TAG="v$CURRENT_VERSION"
-print_status "Creating release tag: $VERSION_TAG"
-git tag "$VERSION_TAG"
-git push origin "$VERSION_TAG"
+# Note: The GitHub Actions workflow will automatically:
+# - Create and push the version tag
+# - Build cross-platform binaries
+# - Create GitHub release with assets
+# - Merge release branch to main
+# - Merge main back to develop
+# - Clean up release branch
 
-print_success "Release tag '$VERSION_TAG' created and pushed!"
-
-# Step 11: Final status
+# Step 10: Final status
 print_success "=================================="
-print_success "RELEASE FULLY AUTOMATED!"
+print_success "RELEASE INITIATED!"
 print_success "=================================="
 print_status "Release branch '$RELEASE_BRANCH' has been created and pushed."
-print_status "Release tag '$VERSION_TAG' has been created and pushed."
 print_status ""
 print_status "The release workflow will automatically:"
-print_status "1. Build cross-platform binaries"
-print_status "2. Create GitHub release with assets"
-print_status "3. Merge release branch to main"
-print_status "4. Merge main back to develop"
-print_status "5. Clean up release branch"
+print_status "1. Create version tag (v$CURRENT_VERSION)"
+print_status "2. Build cross-platform binaries"
+print_status "3. Create GitHub release with assets"
+print_status "4. Merge release branch to main"
+print_status "5. Merge main back to develop"
+print_status "6. Clean up release branch"
 print_status ""
 print_status "You can monitor the release at:"
 print_status "https://github.com/samwisely75/quot/actions"
 
-print_success "🚀 Release v$CURRENT_VERSION is now fully automated!"
-print_status "🎯 No further manual steps required!"
+print_success "🚀 Release v$CURRENT_VERSION initiated!"
+print_status "🎯 GitHub Actions will handle the rest automatically!"
