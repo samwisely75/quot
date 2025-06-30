@@ -182,16 +182,17 @@ print_status "Starting release process for version $CURRENT_VERSION"
 RELEASE_BRANCH="release/$CURRENT_VERSION"
 print_status "Creating release branch: $RELEASE_BRANCH"
 
-# Clean up any existing conflicting tags that might cause issues
-print_status "Cleaning up any conflicting tags..."
-if git tag -l | grep -q "^release/$CURRENT_VERSION$"; then
-    print_warning "Found conflicting tag 'release/$CURRENT_VERSION', deleting it..."
-    git tag -d "release/$CURRENT_VERSION"
+# Clean up any existing conflicting version tags that might cause issues
+VERSION_TAG="v$CURRENT_VERSION"
+print_status "Cleaning up any conflicting version tags..."
+if git tag -l | grep -q "^$VERSION_TAG$"; then
+    print_warning "Found conflicting local tag '$VERSION_TAG', deleting it..."
+    git tag -d "$VERSION_TAG"
 fi
 
-if git ls-remote --tags origin | grep -q "refs/tags/release/$CURRENT_VERSION$"; then
-    print_warning "Found conflicting remote tag 'release/$CURRENT_VERSION', deleting it..."
-    git push origin ":refs/tags/release/$CURRENT_VERSION"
+if git ls-remote --tags origin | grep -q "refs/tags/$VERSION_TAG$"; then
+    print_warning "Found conflicting remote tag '$VERSION_TAG', deleting it..."
+    git push origin ":refs/tags/$VERSION_TAG"
 fi
 
 git checkout -b "$RELEASE_BRANCH"

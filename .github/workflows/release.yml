@@ -167,9 +167,26 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "${{ steps.extract_version.outputs.tag_name }}"
-          git push origin "${{ steps.extract_version.outputs.tag_name }}"
-          echo "Created and pushed tag: ${{ steps.extract_version.outputs.tag_name }}"
+          
+          TAG_NAME="${{ steps.extract_version.outputs.tag_name }}"
+          echo "Processing tag: $TAG_NAME"
+          
+          # Check if tag exists locally and delete it
+          if git tag -l | grep -q "^${TAG_NAME}$"; then
+            echo "Local tag $TAG_NAME exists, deleting it..."
+            git tag -d "$TAG_NAME"
+          fi
+          
+          # Check if tag exists on remote and delete it
+          if git ls-remote --tags origin | grep -q "refs/tags/${TAG_NAME}$"; then
+            echo "Remote tag $TAG_NAME exists, deleting it..."
+            git push origin ":refs/tags/$TAG_NAME"
+          fi
+          
+          # Create and push the tag
+          git tag "$TAG_NAME"
+          git push origin "$TAG_NAME"
+          echo "Created and pushed tag: $TAG_NAME"
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
