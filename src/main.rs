@@ -5,8 +5,8 @@ use std::{
 };
 
 use atty::Stream;
-use crossterm::event::{self, Event};
 use clap::{Parser, ValueEnum};
+use crossterm::event::{self, Event};
 
 mod clipboard_handler;
 mod file_handler;
@@ -24,7 +24,9 @@ enum QuoteFormat {
 
 #[derive(Parser)]
 #[command(name = "quot")]
-#[command(about = "A fast and flexible command-line tool that converts text input into escaped string literals")]
+#[command(
+    about = "A fast and flexible command-line tool that converts text input into escaped string literals"
+)]
 #[command(long_about = None)]
 #[command(version = env!("CARGO_PKG_VERSION"))]
 struct Args {
@@ -289,13 +291,13 @@ mod tests {
     fn test_quote_format_parsing() {
         // Test that QuoteFormat values work correctly
         use clap::ValueEnum;
-        
+
         let double = QuoteFormat::from_str("double", true).unwrap();
         assert!(matches!(double, QuoteFormat::Double));
-        
+
         let single = QuoteFormat::from_str("single", true).unwrap();
         assert!(matches!(single, QuoteFormat::Single));
-        
+
         let raw = QuoteFormat::from_str("raw", true).unwrap();
         assert!(matches!(raw, QuoteFormat::Raw));
     }
@@ -309,7 +311,7 @@ mod tests {
             file: None,
             file_path: Some("test.txt".to_string()),
         };
-        
+
         assert!(matches!(args.format, QuoteFormat::Double));
         assert!(!args.clipboard);
         assert_eq!(args.file_path, Some("test.txt".to_string()));
