@@ -2,13 +2,13 @@
 
 A fast and flexible Rust command-line tool that converts text input into escaped string literals with support for multiple quote styles. Perfect for develope### Clipboard Support
 
-The `--clipboard` flag allows you to process text directly from your system clipboard:
+The `--clipboard` (or `-c`) flag allows you to process text directly from your system clipboard:
 
 ```bash
 # Copy some text to clipboard first, then:
 quot --clipboard                # Double quotes (default)
-quot --clipboard --single       # Single quotes  
-quot --clipboard --raw          # Raw strings
+quot -c --format single         # Single quotes  
+quot -c -t raw                  # Raw strings
 ```
 
 **Example workflow:**
@@ -32,20 +32,20 @@ The clipboard feature works on all supported platforms (Windows, macOS, Linux) a
 echo 'Hello "world"' | quot
 
 # Different quote styles
-echo 'Hello "world"' | quot --single    # 'Hello "world"'
-echo 'Hello "world"' | quot --raw       # r#"Hello "world""#
+echo 'Hello "world"' | quot -t single    # 'Hello "world"'
+echo 'Hello "world"' | quot -t raw       # r#"Hello "world""#
 ```
 
 ## Features
 
 - 🚀 **Multiple Input Methods**: Interactive keyboard input, piped input, file input, or clipboard input
-- 📋 **Clipboard Support**: Direct text processing from system clipboard with `--clipboard` flag
+- 📋 **Clipboard Support**: Direct text processing from system clipboard with `-c/--clipboard` flag
+- 🔧 **Short Flags**: Convenient short options: `-t` for format, `-f` for file, `-c` for clipboard
 - 📝 **Interactive Editing**: Full cursor movement, insert/delete, and paste support
-- � **Smart Clipboard Paste**: Seamlessly handles multi-line clipboard content with proper formatting
-- �📊 **Line Numbers**: Visual line numbering in interactive mode for multi-line input
+- 📊 **Line Numbers**: Visual line numbering in interactive mode for multi-line input
 - 🎨 **Multiple Quote Styles**: Double quotes, single quotes, or raw strings (Rust-style)
 - ⚡ **Fast & Lightweight**: Built in Rust for optimal performance
-- 🧪 **Well Tested**: Comprehensive test suite with 17+ tests
+- 🧪 **Well Tested**: Comprehensive test suite with 19+ tests
 
 ## Installation
 
@@ -148,6 +148,8 @@ quot
 
 # Read from file
 quot input.txt
+# or
+quot -f input.txt
 
 # Read from piped input
 echo "Hello world" | quot
@@ -155,6 +157,8 @@ cat file.txt | quot
 
 # Read from system clipboard
 quot --clipboard
+# or
+quot -c
 ```
 
 ### Quote Style Options
@@ -165,30 +169,29 @@ quot --clipboard
 quot input.txt
 # Output: "Hello \"world\"\nLine 2"
 
-echo "Test input" | quot --double
-# Output: "Test input\n"
+echo "Test input" | quot
+# Output: "Test input"
 ```
 
 #### Single Quotes
 
 ```bash
-quot --single input.txt
+quot -t single input.txt
 # Output: 'Hello "world"\nLine 2'
 
-echo "Test input" | quot --single
-# Output: 'Test input\n'
+echo "Test input" | quot -t single
+# Output: 'Test input'
 ```
 
 #### Raw Strings (Rust-style)
 
 ```bash
-quot --raw input.txt
+quot -t raw input.txt
 # Output: r#"Hello "world"
 # Line 2"#
 
-echo "Test input" | quot --raw
-# Output: r#"Test input
-# "#
+echo "Test input" | quot -t raw
+# Output: r#"Test input"#
 ```
 
 ### Interactive Mode
@@ -215,21 +218,21 @@ When you run `quot` without arguments and input isn't piped, you enter interacti
 
 ### Clipboard Support
 
-The `--clipboard` flag allows you to process text directly from your system clipboard:
+The `--clipboard` (or `-c`) flag allows you to process text directly from your system clipboard:
 
 ```bash
 # Copy some text to clipboard first, then:
 quot --clipboard                # Double quotes (default)
-quot --clipboard --single       # Single quotes  
-quot --clipboard --raw          # Raw strings
+quot -c -t single               # Single quotes  
+quot -c -t raw                  # Raw strings
 
 # Example workflow:
 # 1. Copy this multi-line text to clipboard:
 #    Hello "world"
-#    Line with tab:	here
+#    Line with tab:    here
 #    Backslash: \test
 # 2. Run: quot --clipboard
-# 3. Output: "Hello \"world\"\nLine with tab:\here\nBackslash: \\test"
+# 3. Output: "Hello \"world\"\nLine with tab:\there\nBackslash: \\test"
 ```
 
 The clipboard feature works on all supported platforms (Windows, macOS, Linux) and handles multi-line content seamlessly.
@@ -269,7 +272,7 @@ This has "multiple" quotes like """this""" example.
 **Command:**
 
 ```bash
-echo 'This has "multiple" quotes like """this""" example.' | quot --raw
+echo 'This has "multiple" quotes like """this""" example.' | quot -t raw
 ```
 
 **Output:**
@@ -315,19 +318,19 @@ quot
 
 ```bash
 # Convert a config file to an escaped string
-quot --single config.json
+quot -t single config.json
 
 # Chain with other tools
-grep "error" log.txt | quot --raw
+grep "error" log.txt | quot -t raw
 ```
 
 ## Quote Style Comparison
 
-| Style | Escapes | Use Case |
-|-------|---------|----------|
-| `--double` | `\"`, `\\`, `\n`, `\r`, `\t` | General purpose, most languages |
-| `--single` | `\'`, `\\`, `\n`, `\r`, `\t` | Languages that prefer single quotes |
-| `--raw` | None (raw strings) | Rust code, regex patterns, paths |
+| Style | Flag | Escapes | Use Case |
+|-------|------|---------|----------|
+| Double | `-t double` (default) | `\"`, `\\`, `\n`, `\r`, `\t` | General purpose, most languages |
+| Single | `-t single` | `\'`, `\\`, `\n`, `\r`, `\t` | Languages that prefer single quotes |
+| Raw | `-t raw` | None (raw strings) | Rust code, regex patterns, paths |
 
 ## Help
 
@@ -336,22 +339,35 @@ quot --help
 ```
 
 ```text
-Usage:
-  quot [OPTIONS] [FILE]    # Read from file
-  echo 'text' | quot [OPTIONS]  # Read from stdin (piped)
-  quot [OPTIONS]           # Read from stdin (interactive)
+A fast and flexible command-line tool that converts text input into escaped string literals
+
+Usage: quot [OPTIONS] [FILE_PATH]
+
+Arguments:
+  [FILE_PATH]
+          File path (positional argument, alternative to --file)
 
 Options:
-  --double      Use double quotes (default)
-  --single      Use single quotes
-  --raw         Use raw strings (Rust style)
-  -h, --help    Show this help message
+  -t, --format <FORMAT>
+          Quote format to use
+          
+          [default: double]
+          Possible values:
+          - double: Use double quotes (default)
+          - single: Use single quotes
+          - raw:    Use raw strings (Rust style)
 
-Converts input text to an escaped string literal.
+  -c, --clipboard
+          Read text from system clipboard
 
-Interactive mode:
-  Enter empty line or Ctrl+C to finish input
-  Line numbers are shown for reference
+  -f, --file <FILE>
+          File to read from (if not specified, reads from stdin)
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
 ```
 
 ## Development
@@ -373,6 +389,7 @@ src/
 
 ### Dependencies
 
+- `clap` - Command line argument parsing with derive macros
 - `crossterm` - Cross-platform terminal manipulation
 - `atty` - TTY detection for piped vs interactive input
 
