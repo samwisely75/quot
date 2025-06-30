@@ -27,9 +27,6 @@ jobs:
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             name: quot-windows-x64.exe
-          - target: aarch64-pc-windows-msvc
-            os: windows-latest
-            name: quot-windows-arm64.exe
           
           # macOS
           - target: x86_64-apple-darwin
@@ -43,9 +40,6 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
             name: quot-linux-x64
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
-            name: quot-linux-arm64
 
     runs-on: ${{ matrix.os }}
     
@@ -76,19 +70,6 @@ jobs:
           path: target
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Install cross-compilation tools (Linux ARM64)
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-
-      - name: Configure cross-compilation (Linux ARM64)
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          mkdir -p ~/.cargo
-          echo '[target.aarch64-unknown-linux-gnu]' >> ~/.cargo/config.toml
-          echo 'linker = "aarch64-linux-gnu-gcc"' >> ~/.cargo/config.toml
-
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
 
@@ -108,6 +89,200 @@ jobs:
         with:
           name: ${{ matrix.name }}
           path: ${{ matrix.name }}
+          if-no-files-found: error
+
+  build-packages:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Linux binary
+        uses: actions/download-artifact@v4
+        with:
+          name: quot-linux-x64
+          path: binaries/
+
+      - name: Install packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm alien fakeroot
+
+      - name: Setup package structure
+        run: |
+          chmod +x binaries/quot-linux-x64
+          
+          # Create directory structure for packaging
+          mkdir -p packaging/usr/bin
+          mkdir -p packaging/usr/share/man/man1
+          mkdir -p packaging/DEBIAN
+          mkdir -p packaging/usr/share/doc/quot
+          
+          # Copy binary
+          cp binaries/quot-linux-x64 packaging/usr/bin/quot
+          
+          # Create basic man page
+          cat > packaging/usr/share/man/man1/quot.1 << 'EOF'
+          .TH QUOT 1 "$(date +'%B %Y')" "quot $(grep '^version' Cargo.toml | cut -d'"' -f2)" "User Commands"
+          .SH NAME
+          quot \- A fast and flexible command-line tool that converts text input into escaped string literals
+          .SH SYNOPSIS
+          .B quot
+          [\fIOPTIONS\fR] [\fIFILE\fR]
+          .SH DESCRIPTION
+          \fBquot\fP converts input text to escaped string literals in various formats.
+          .SH OPTIONS
+          .TP
+          \fB\-\-double\fR
+          Use double quotes (default)
+          .TP
+          \fB\-\-single\fR
+          Use single quotes  
+          .TP
+          \fB\-\-raw\fR
+          Use raw strings (Rust style)
+          .TP
+          \fB\-\-clipboard\fR
+          Read text from system clipboard
+          .TP
+          \fB\-h, \-\-help\fR
+          Show help message
+          .TP
+          \fB\-V, \-\-version\fR
+          Show version information
+          .SH EXAMPLES
+          .TP
+          echo "Hello World" | quot
+          .TP
+          quot input.txt
+          .TP
+          quot --single < file.txt
+          .SH AUTHOR
+          Written by Satoshi Iizuka.
+          .SH REPORTING BUGS
+          Report bugs to: https://github.com/samwisely75/quot/issues
+          EOF
+          
+          # Compress man page
+          gzip packaging/usr/share/man/man1/quot.1
+          
+          # Create copyright file
+          cp LICENSE packaging/usr/share/doc/quot/copyright
+          
+          # Create changelog
+          echo "quot ($(grep '^version' Cargo.toml | cut -d'"' -f2)) stable; urgency=medium" > packaging/usr/share/doc/quot/changelog.Debian
+          echo "" >> packaging/usr/share/doc/quot/changelog.Debian
+          echo "  * Release version $(grep '^version' Cargo.toml | cut -d'"' -f2)" >> packaging/usr/share/doc/quot/changelog.Debian
+          echo "" >> packaging/usr/share/doc/quot/changelog.Debian
+          echo " -- Satoshi Iizuka <satoshi.iizuka@elastic.co>  $(date -R)" >> packaging/usr/share/doc/quot/changelog.Debian
+          
+          # Compress changelog
+          gzip packaging/usr/share/doc/quot/changelog.Debian
+
+      - name: Create DEB package
+        run: |
+          VERSION=$(grep '^version' Cargo.toml | cut -d'"' -f2)
+          
+          # Create DEBIAN control file
+          cat > packaging/DEBIAN/control << EOF
+          Package: quot
+          Version: ${VERSION}
+          Section: utils
+          Priority: optional
+          Architecture: amd64
+          Depends: libc6 (>= 2.17)
+          Maintainer: Satoshi Iizuka <satoshi.iizuka@elastic.co>
+          Description: A fast and flexible command-line tool for text escaping
+           quot converts input text into escaped string literals in various formats.
+           It supports double quotes, single quotes, and raw strings (Rust style).
+           The tool can read from files, stdin, or clipboard and is useful for
+           developers who need to quickly escape text for use in code.
+          Homepage: https://github.com/samwisely75/quot
+          EOF
+          
+          # Build DEB package
+          fakeroot dpkg-deb --build packaging quot_${VERSION}_amd64.deb
+          
+          # Verify package
+          dpkg-deb --info quot_${VERSION}_amd64.deb
+          dpkg-deb --contents quot_${VERSION}_amd64.deb
+
+      - name: Create RPM package
+        run: |
+          VERSION=$(grep '^version' Cargo.toml | cut -d'"' -f2)
+          
+          # Create RPM build directories
+          mkdir -p rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+          
+          # Create RPM spec file
+          cat > rpmbuild/SPECS/quot.spec << EOF
+          Name:           quot
+          Version:        ${VERSION}
+          Release:        1%{?dist}
+          Summary:        A fast and flexible command-line tool for text escaping
+          
+          License:        Apache-2.0
+          URL:            https://github.com/samwisely75/quot
+          Source0:        %{name}-%{version}.tar.gz
+          
+          BuildArch:      x86_64
+          Requires:       glibc >= 2.17
+          
+          %description
+          quot converts input text into escaped string literals in various formats.
+          It supports double quotes, single quotes, and raw strings (Rust style).
+          The tool can read from files, stdin, or clipboard and is useful for
+          developers who need to quickly escape text for use in code.
+          
+          %prep
+          # No prep needed for binary package
+          
+          %build
+          # No build needed for binary package
+          
+          %install
+          rm -rf %{buildroot}
+          mkdir -p %{buildroot}/usr/bin
+          mkdir -p %{buildroot}/usr/share/man/man1
+          mkdir -p %{buildroot}/usr/share/doc/quot
+          
+          cp %{_topdir}/../binaries/quot-linux-x64 %{buildroot}/usr/bin/quot
+          cp %{_topdir}/../packaging/usr/share/man/man1/quot.1.gz %{buildroot}/usr/share/man/man1/
+          cp %{_topdir}/../packaging/usr/share/doc/quot/copyright %{buildroot}/usr/share/doc/quot/
+          
+          %files
+          %{_bindir}/quot
+          %{_mandir}/man1/quot.1.gz
+          %doc %{_docdir}/quot/copyright
+          
+          %changelog
+          * $(date +'%a %b %d %Y') Satoshi Iizuka <satoshi.iizuka@elastic.co> - ${VERSION}-1
+          - Release version ${VERSION}
+          EOF
+          
+          # Build RPM package
+          rpmbuild --define "_topdir $(pwd)/rpmbuild" -bb rpmbuild/SPECS/quot.spec
+          
+          # Copy RPM to current directory
+          find rpmbuild/RPMS -name "*.rpm" -exec cp {} quot-${VERSION}-1.x86_64.rpm \;
+          
+          # Verify package
+          rpm -qip quot-${VERSION}-1.x86_64.rpm
+          rpm -qlp quot-${VERSION}-1.x86_64.rpm
+
+      - name: Upload DEB package
+        uses: actions/upload-artifact@v4
+        with:
+          name: quot-deb-package
+          path: "*.deb"
+          if-no-files-found: error
+
+      - name: Upload RPM package
+        uses: actions/upload-artifact@v4
+        with:
+          name: quot-rpm-package
+          path: "*.rpm"
           if-no-files-found: error
 
   test-binaries:
@@ -142,7 +317,7 @@ jobs:
           echo "Hello World" | ./${{ matrix.binary }} --double
 
   create-release:
-    needs: [build, test-binaries]
+    needs: [build, build-packages, test-binaries]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -205,6 +380,8 @@ jobs:
         run: |
           mkdir -p release-assets
           find artifacts -name "quot-*" -exec cp {} release-assets/ \;
+          find artifacts -name "*.deb" -exec cp {} release-assets/ \;
+          find artifacts -name "*.rpm" -exec cp {} release-assets/ \;
           ls -la release-assets/
 
       - name: Create Release
@@ -219,8 +396,8 @@ jobs:
             ## What's Changed
             
             * Cross-platform release for Windows, macOS, and Linux
-            * Supports both x64 and ARM64 architectures
-            * Available on crates.io for easy installation
+            * Linux packages available in DEB and RPM formats
+            * Available on crates.io and Homebrew for easy installation
             
             ## Installation
             
@@ -230,13 +407,33 @@ jobs:
             cargo install quot
             ```
             
+            ### Using Homebrew (macOS)
+            
+            ```bash
+            brew tap samwisely75/tap
+            brew install quot
+            ```
+            
+            ### Using Package Managers (Linux)
+            
+            **Debian/Ubuntu (.deb):**
+            ```bash
+            # Download the .deb file from assets below, then:
+            sudo dpkg -i quot_*_amd64.deb
+            ```
+            
+            **RHEL/CentOS/Fedora (.rpm):**
+            ```bash
+            # Download the .rpm file from assets below, then:
+            sudo rpm -ivh quot-*-1.x86_64.rpm
+            ```
+            
             ### Pre-built Binaries
             
             Download the appropriate binary for your platform from the assets below:
             
             ### Windows
             - `quot-windows-x64.exe` - Windows 64-bit (Intel/AMD)
-            - `quot-windows-arm64.exe` - Windows ARM64
             
             ### macOS
             - `quot-macos-x64` - macOS Intel (x64)
@@ -244,7 +441,8 @@ jobs:
             
             ### Linux
             - `quot-linux-x64` - Linux 64-bit (Intel/AMD)
-            - `quot-linux-arm64` - Linux ARM64
+            - `quot_*_amd64.deb` - Debian/Ubuntu package
+            - `quot-*-1.x86_64.rpm` - RHEL/CentOS/Fedora package
             
             ## Usage
             
@@ -262,10 +460,162 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  publish-homebrew:
+    name: Publish to Homebrew
+    runs-on: ubuntu-latest
+    needs: create-release
+    permissions:
+      contents: read
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Extract version from branch name
+      id: extract_version
+      run: |
+        if [[ "${{ github.ref_name }}" =~ ^release/(.+)$ ]]; then
+          VERSION=${BASH_REMATCH[1]}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag_name=v${VERSION}" >> $GITHUB_OUTPUT
+          echo "Extracted version: ${VERSION}"
+        else
+          echo "Error: Could not extract version from branch name: ${{ github.ref_name }}"
+          exit 1
+        fi
+
+    - name: Generate Homebrew formula
+      id: homebrew_formula
+      run: |
+        VERSION="${{ steps.extract_version.outputs.version }}"
+        TAG_NAME="${{ steps.extract_version.outputs.tag_name }}"
+        
+        # Wait a moment for the release assets to be available
+        sleep 30
+        
+        # Download the macOS binaries to get the SHA256
+        echo "Downloading macOS x64 binary..."
+        curl -L -f --retry 3 --retry-delay 10 -o quot-macos-x64 "https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/quot-macos-x64"
+        MACOS_X64_SHA256=$(sha256sum quot-macos-x64 | cut -d' ' -f1)
+        echo "macOS x64 SHA256: ${MACOS_X64_SHA256}"
+        
+        echo "Downloading macOS ARM64 binary..."
+        curl -L -f --retry 3 --retry-delay 10 -o quot-macos-arm64 "https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/quot-macos-arm64"
+        MACOS_ARM64_SHA256=$(sha256sum quot-macos-arm64 | cut -d' ' -f1)
+        echo "macOS ARM64 SHA256: ${MACOS_ARM64_SHA256}"
+        
+        # Generate Homebrew formula
+        cat > quot.rb << EOF
+        class Quot < Formula
+          desc "A fast and flexible command-line tool that converts text input into escaped string literals"
+          homepage "https://github.com/samwisely75/quot"
+          version "${VERSION}"
+          license "Apache-2.0"
+
+          on_macos do
+            if Hardware::CPU.intel?
+              url "https://github.com/samwisely75/quot/releases/download/${TAG_NAME}/quot-macos-x64"
+              sha256 "${MACOS_X64_SHA256}"
+
+              def install
+                bin.install "quot-macos-x64" => "quot"
+              end
+            end
+            if Hardware::CPU.arm?
+              url "https://github.com/samwisely75/quot/releases/download/${TAG_NAME}/quot-macos-arm64"
+              sha256 "${MACOS_ARM64_SHA256}"
+
+              def install
+                bin.install "quot-macos-arm64" => "quot"
+              end
+            end
+          end
+
+          test do
+            output = shell_output("#{bin}/quot --version 2>&1").strip
+            assert_match version.to_s, output
+            assert_equal "\"Hello World\\n\"", shell_output("echo 'Hello World' | #{bin}/quot").strip
+          end
+        end
+        EOF
+        
+        echo "Generated Homebrew formula:"
+        cat quot.rb
+
+    - name: Setup homebrew tap repository
+      env:
+        HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN || secrets.GITHUB_TOKEN }}
+      run: |
+        # Clone or create the homebrew tap repository
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        
+        TAP_REPO="https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/samwisely75/homebrew-tap.git"
+        
+        if git ls-remote "$TAP_REPO" &>/dev/null; then
+          echo "Tap repository exists, cloning..."
+          git clone "$TAP_REPO" homebrew-tap
+        else
+          echo "Creating new tap repository..."
+          mkdir homebrew-tap
+          cd homebrew-tap
+          git init
+          echo "# Homebrew Tap for samwisely75" > README.md
+          echo "" >> README.md
+          echo "This is a Homebrew tap for samwisely75's tools." >> README.md
+          echo "" >> README.md
+          echo "## Installation" >> README.md
+          echo "" >> README.md
+          echo "\`\`\`bash" >> README.md
+          echo "brew tap samwisely75/tap" >> README.md
+          echo "brew install quot" >> README.md
+          echo "\`\`\`" >> README.md
+          mkdir -p Formula
+          git add README.md Formula/
+          git commit -m "Initial tap setup"
+          git branch -M main
+          git remote add origin "$TAP_REPO"
+        fi
+
+    - name: Update formula and create PR
+      env:
+        HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN || secrets.GITHUB_TOKEN }}
+      run: |
+        cd homebrew-tap
+        
+        # Create Formula directory if it doesn't exist
+        mkdir -p Formula
+        
+        # Copy the generated formula
+        cp ../quot.rb Formula/quot.rb
+        
+        # Check if there are changes
+        if git diff --quiet Formula/quot.rb 2>/dev/null; then
+          echo "No changes to formula, skipping update"
+          exit 0
+        fi
+        
+        # Create a new branch for the update
+        BRANCH_NAME="update-quot-${{ steps.extract_version.outputs.version }}"
+        git checkout -b "$BRANCH_NAME" 2>/dev/null || git checkout "$BRANCH_NAME"
+        
+        # Add and commit changes
+        git add Formula/quot.rb
+        git commit -m "Update quot to v${{ steps.extract_version.outputs.version }}"
+        
+        # Push the branch
+        git push origin "$BRANCH_NAME"
+        
+        echo "✅ Successfully updated Homebrew formula to v${{ steps.extract_version.outputs.version }}"
+        echo "📝 Formula available at: https://github.com/samwisely75/homebrew-tap/blob/$BRANCH_NAME/Formula/quot.rb"
+        echo ""
+        echo "To install with Homebrew:"
+        echo "  brew tap samwisely75/tap"
+        echo "  brew install quot"
+
   merge-to-main:
     name: Merge Release to Main
     runs-on: ubuntu-latest
-    needs: [create-release, build, test-binaries]
+    needs: [create-release, publish-homebrew, build, build-packages, test-binaries]
     if: startsWith(github.ref, 'refs/heads/release/')
     steps:
     - name: Checkout code
