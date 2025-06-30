@@ -169,7 +169,10 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
           TAG_NAME="${{ steps.extract_version.outputs.tag_name }}"
+          VERSION="${{ steps.extract_version.outputs.version }}"
+          RELEASE_BRANCH="release/$VERSION"
           echo "Processing tag: $TAG_NAME"
+          echo "Processing release branch: $RELEASE_BRANCH"
           
           # Check if tag exists locally and delete it
           if git tag -l | grep -q "^${TAG_NAME}$"; then
@@ -181,6 +184,11 @@ jobs:
           if git ls-remote --tags origin | grep -q "refs/tags/${TAG_NAME}$"; then
             echo "Remote tag $TAG_NAME exists, deleting it..."
             git push origin ":refs/tags/$TAG_NAME"
+          fi
+          
+          # Check if release branch exists on remote and delete it (excluding current branch)
+          if git ls-remote --heads origin | grep -q "refs/heads/${RELEASE_BRANCH}$"; then
+            echo "Remote release branch $RELEASE_BRANCH exists, will be cleaned up after merge..."
           fi
           
           # Create and push the tag

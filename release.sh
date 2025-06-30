@@ -182,9 +182,11 @@ print_status "Starting release process for version $CURRENT_VERSION"
 RELEASE_BRANCH="release/$CURRENT_VERSION"
 print_status "Creating release branch: $RELEASE_BRANCH"
 
-# Clean up any existing conflicting version tags that might cause issues
+# Clean up any existing conflicting version tags and release branches
 VERSION_TAG="v$CURRENT_VERSION"
-print_status "Cleaning up any conflicting version tags..."
+print_status "Cleaning up any conflicting version tags and release branches..."
+
+# Clean up version tag (local and remote)
 if git tag -l | grep -q "^$VERSION_TAG$"; then
     print_warning "Found conflicting local tag '$VERSION_TAG', deleting it..."
     git tag -d "$VERSION_TAG"
@@ -193,6 +195,17 @@ fi
 if git ls-remote --tags origin | grep -q "refs/tags/$VERSION_TAG$"; then
     print_warning "Found conflicting remote tag '$VERSION_TAG', deleting it..."
     git push origin ":refs/tags/$VERSION_TAG"
+fi
+
+# Clean up release branch (local and remote)
+if git branch --list | grep -q "^  $RELEASE_BRANCH$"; then
+    print_warning "Found conflicting local branch '$RELEASE_BRANCH', deleting it..."
+    git branch -D "$RELEASE_BRANCH"
+fi
+
+if git ls-remote --heads origin | grep -q "refs/heads/$RELEASE_BRANCH$"; then
+    print_warning "Found conflicting remote branch '$RELEASE_BRANCH', deleting it..."
+    git push origin --delete "$RELEASE_BRANCH"
 fi
 
 git checkout -b "$RELEASE_BRANCH"
@@ -279,3 +292,9 @@ print_status "https://github.com/samwisely75/quot/actions"
 
 print_success "🚀 Release v$CURRENT_VERSION initiated!"
 print_status "🎯 GitHub Actions will handle the rest automatically!"
+
+# Return to develop branch before exiting
+print_status "Returning to develop branch..."
+git checkout develop
+
+print_success "✅ Release process completed! You're now back on the develop branch."
