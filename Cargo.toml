@@ -22,7 +22,7 @@ exclude = [
 atty = "0.2.14"
 regex = "1.0"
 crossterm = "0.27"
-arboard = "3.4"
+arboard = "3.6"
 clap = { version = "4.5", features = ["derive"] }
 
 # Clippy configuration to enforce code quality and modern Rust idioms
