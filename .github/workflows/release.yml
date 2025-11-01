@@ -85,7 +85,7 @@ jobs:
           chmod +x ${{ matrix.name }}
 
       - name: Upload binary artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.name }}
           path: ${{ matrix.name }}
@@ -272,14 +272,14 @@ jobs:
           rpm -qlp quot-${VERSION}-1.x86_64.rpm
 
       - name: Upload DEB package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: quot-deb-package
           path: "*.deb"
           if-no-files-found: error
 
       - name: Upload RPM package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: quot-rpm-package
           path: "*.rpm"
