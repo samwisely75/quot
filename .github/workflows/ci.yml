@@ -16,7 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
@@ -63,7 +63,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
@@ -125,7 +125,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
