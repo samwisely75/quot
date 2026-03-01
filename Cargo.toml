@@ -20,7 +20,7 @@ exclude = [
 
 [dependencies]
 atty = "0.2.14"
-regex = "1.0"
+regex = "1.12"
 crossterm = "0.27"
 arboard = "3.4"
 clap = { version = "4.5", features = ["derive"] }
